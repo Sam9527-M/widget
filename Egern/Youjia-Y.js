@@ -8,7 +8,7 @@ export default async function (ctx) {
   };
 
   // ⭐ 用户设置城市（环境变量）
-  const CITY = ctx.env.CITY || "防城港";
+  const CITY = ctx.env.CITY || "南宁";
 
   // ⭐ 本地兜底城市映射（远程失败时使用）
   const LOCAL_CITY_MAP = {
