@@ -22,8 +22,8 @@ export default async function (ctx) {
 
   // ⭐ 城市映射远程地址（双地址）
   const CITY_MAP_URLS = [
-    "https://你的域名/city_map.json",
-    "https://你的域名/city_map.json"
+    "https://raw.githubusercontent.com/Sam9527-M/widget/refs/heads/main/CITY2.json",
+    "https://raw.githubusercontent.com/Sam9527-M/widget/refs/heads/main/CITY.json"
   ];
 
   const CITY_MAP_CACHE_KEY = "city_map_cache";
@@ -55,14 +55,34 @@ export default async function (ctx) {
       }
     }
 
-    // 远程失败 → 使用本地兜底
     return LOCAL_CITY_MAP;
   }
 
   const CITY_MAP = await fetchCityMap();
 
-  // ⭐ 自动识别省份（优先远程）
-  const PROVINCE = CITY_MAP[CITY] || CITY;
+  // ⭐ 自动转换：支持省份 → 城市数组格式
+  function normalizeCityMap(map) {
+    const result = {};
+
+    for (const province in map) {
+      const cities = map[province];
+
+      if (Array.isArray(cities)) {
+        for (const city of cities) {
+          result[city] = province;
+        }
+      } else if (typeof cities === "string") {
+        result[province] = cities;
+      }
+    }
+
+    return result;
+  }
+
+  const CITY_MAP_NORMALIZED = normalizeCityMap(CITY_MAP);
+
+  // ⭐ 自动识别省份（使用转换后的映射）
+  const PROVINCE = CITY_MAP_NORMALIZED[CITY] || CITY;
 
   // ⭐ 油价缓存 key（按省份）
   const CACHE_KEY = `oil_cache_${PROVINCE}`;
@@ -140,7 +160,7 @@ export default async function (ctx) {
     `${String(now.getMinutes()).padStart(2, "0")}`;
   // ⭐ 调价日历远程地址（双地址）
   const CALENDAR_URLS = [
-    "https://你的域名/adjust_calendar.json",
+    "https://raw.githubusercontent.com/Sam9527-M/widget/refs/heads/main/TJRQ.json",
     "https://你的域名/adjust_calendar.json"
   ];
 
