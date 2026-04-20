@@ -22,8 +22,8 @@ export default async function (ctx) {
 
   // ⭐ 城市映射远程地址（双地址）
   const CITY_MAP_URLS = [
-    "https://你的域名/adjust_calendar.json",
-    "https://你的域名/adjust_calendar.json"
+    "https://你的域名/city_map.json",
+    "https://你的域名/city_map.json"
   ];
 
   const CITY_MAP_CACHE_KEY = "city_map_cache";
@@ -138,7 +138,6 @@ export default async function (ctx) {
     `${String(now.getDate()).padStart(2, "0")} ` +
     `${String(now.getHours()).padStart(2, "0")}:` +
     `${String(now.getMinutes()).padStart(2, "0")}`;
-
   // ⭐ 调价日历远程地址（双地址）
   const CALENDAR_URLS = [
     "https://你的域名/adjust_calendar.json",
@@ -210,16 +209,42 @@ export default async function (ctx) {
     return null;
   }
 
+  // ⭐ 安全获取 nextAdjust（可能为 null）
   const nextAdjust = getNextAdjustDate();
 
-  const uiDate = new Date(nextAdjust.getTime());
-  const uiDateStr = `${uiDate.getMonth() + 1}月${uiDate.getDate()}日`;
+  // ⭐ 只有 nextAdjust 存在时才生成 UI
+  let adjustUI = null;
 
-  const diff = nextAdjust - now;
-  const leftDays = Math.floor(diff / (1000 * 60 * 60 * 24));
-  const leftHours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-  const countdownStr = `${leftDays}天${leftHours}小时`;
+  if (nextAdjust) {
+    const uiDate = new Date(nextAdjust.getTime());
+    const uiDateStr = `${uiDate.getMonth() + 1}月${uiDate.getDate()}日`;
 
+    const diff = nextAdjust - now;
+    const leftDays = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const leftHours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+    const countdownStr = `${leftDays}天${leftHours}小时`;
+
+    adjustUI = {
+      type: "stack",
+      direction: "row",
+      alignItems: "center",
+      padding: [4, 0, 0, 2],
+      children: [
+        {
+          type: "text",
+          text: `下轮调价：`,
+          font: { size: 12, weight: "bold" },
+          textColor: THEME.text
+        },
+        {
+          type: "text",
+          text: `${uiDateStr}（${countdownStr}）`,
+          font: { size: 12, weight: "bold" },
+          textColor: "#FF9500"
+        }
+      ]
+    };
+  }
   const item = (key) => ({
     type: "stack",
     direction: "column",
@@ -259,6 +284,7 @@ export default async function (ctx) {
     ]
   });
 
+  // ⭐ 最终 UI（下轮调价行根据 adjustUI 是否存在决定是否渲染）
   return {
     type: "widget",
     padding: [10, 8, 10, 8],
@@ -309,26 +335,8 @@ export default async function (ctx) {
         children: [item("92"), item("95"), item("98"), item("0")]
       },
 
-      {
-        type: "stack",
-        direction: "row",
-        alignItems: "center",
-        padding: [4, 0, 0, 2],
-        children: [
-          {
-            type: "text",
-            text: `下轮调价：`,
-            font: { size: 12, weight: "bold" },
-            textColor: THEME.text
-          },
-          {
-            type: "text",
-            text: `${uiDateStr}（${countdownStr}）`,
-            font: { size: 12, weight: "bold" },
-            textColor: "#FF9500"
-          }
-        ]
-      }
+      // ⭐ 条件渲染：只有 adjustUI 存在才显示
+      ...(adjustUI ? [adjustUI] : [])
     ]
   };
 }
