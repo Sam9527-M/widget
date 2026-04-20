@@ -22,8 +22,8 @@ export default async function (ctx) {
 
   // ⭐ 城市映射远程地址（双地址）
   const CITY_MAP_URLS = [
-    "http://43us.yujino.org:3000/sam9527/sam9527/raw/branch/main/CTIY.json?token=b9cca2c1abae26329e3bf0af0539b1c5564e2eb9",
-    "https://raw.githubusercontent.com/sisan43/Sam9527/main/widget/CITY.json"
+    "https://你的域名/adjust_calendar.json",
+    "https://你的域名/adjust_calendar.json"
   ];
 
   const CITY_MAP_CACHE_KEY = "city_map_cache";
@@ -141,8 +141,8 @@ export default async function (ctx) {
 
   // ⭐ 调价日历远程地址（双地址）
   const CALENDAR_URLS = [
-    "http://43us.yujino.org:3000/sam9527/sam9527/raw/branch/main/YJNF.json",
-    "https://raw.githubusercontent.com/sisan43/Sam9527/main/widget/YJNF.json"
+    "https://你的域名/adjust_calendar.json",
+    "https://你的域名/adjust_calendar.json"
   ];
 
   const CALENDAR_CACHE_KEY = "oil_adjust_calendar_cache";
