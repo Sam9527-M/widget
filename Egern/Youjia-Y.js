@@ -12,7 +12,7 @@ export default async function (ctx) {
 
   // ⭐ 本地兜底城市映射（远程失败时使用）
   const LOCAL_CITY_MAP = {
-     "北京": ["北京"],
+    "北京": ["北京"],
     "上海": ["上海"],
     "天津": ["天津"],
     "重庆": ["重庆"],
