@@ -1,6 +1,6 @@
 /**
- * 全国城市油价（自动识别省份 + 全国城市映射 + 缓存按省份 + 调试日志）
- */
+ • 全国城市油价（自动识别省份 + 全国城市映射 + 缓存按省份 + 调试日志）
+*/
 
 export default async function (ctx) {
   const THEME = {
@@ -9,6 +9,10 @@ export default async function (ctx) {
 
   // ⭐ 用户设置城市（环境变量）
   const CITY = ctx.env.CITY || "南宁";
+
+  // ⭐ 用户设置 app_id / app_secret（环境变量）
+  const APP_ID = ctx.env.APP_ID || "lq3kkhsrll7hfaop";
+  const APP_SECRET = ctx.env.APP_SECRET || "I4FH8JgwaEZvGj2ZFLYNmtIJ6YZjiD9r";
 
   // ⭐ 全国省份 → 城市列表（完整）
   const PROVINCE_CITY_MAP = {
@@ -45,7 +49,6 @@ export default async function (ctx) {
     "黑龙江": ["哈尔滨","齐齐哈尔","牡丹江","佳木斯","大庆","鸡西","鹤岗","双鸭山","伊春","七台河","黑河","绥化","大兴安岭"],
     "内蒙古": ["呼和浩特","包头","乌海","赤峰","通辽","鄂尔多斯","呼伦贝尔","巴彦淖尔","乌兰察布","兴安盟","锡林郭勒盟","阿拉善盟"]
   };
-
   // ⭐ 自动生成 城市 → 省份 映射
   const CITY_TO_PROVINCE = {};
   for (const [prov, cities] of Object.entries(PROVINCE_CITY_MAP)) {
@@ -73,9 +76,10 @@ export default async function (ctx) {
   if (cacheValid) {
     oil = cache.data;
   } else {
+    // ⭐ 请求 API（使用环境变量）
     const API = `https://www.mxnzp.com/api/oil/search?province=${encodeURIComponent(
       PROVINCE
-    )}&app_id=lq3kkhsrll7hfaop&app_secret=I4FH8JgwaEZvGj2ZFLYNmtIJ6YZjiD9r`;
+    )}&app_id=${APP_ID}&app_secret=${APP_SECRET}`;
 
     try {
       const r = await ctx.http.get(API);
@@ -127,12 +131,7 @@ export default async function (ctx) {
 
   // ⭐ 刷新时间
   const now = new Date();
-  const dateStr =
-    `${now.getFullYear()}-` +
-    `${String(now.getMonth() + 1).padStart(2, "0")}-` +
-    `${String(now.getDate()).padStart(2, "0")} ` +
-    `${String(now.getHours()).padStart(2, "0")}:` +
-    `${String(now.getMinutes()).padStart(2, "0")}`;
+  const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
 
   // ⭐ 调价日历
   const ADJUST_CALENDAR = {
@@ -174,7 +173,6 @@ export default async function (ctx) {
   const leftDays = Math.floor(diff / (1000 * 60 * 60 * 24));
   const leftHours = Math.floor((diff / (1000 * 60 * 60)) % 24);
   const countdownStr = `${leftDays}天${leftHours}小时`;
-
   const item = (key) => ({
     type: "stack",
     direction: "column",
@@ -213,6 +211,7 @@ export default async function (ctx) {
       }
     ]
   });
+
   return {
     type: "widget",
     padding: [10, 8, 10, 8],
@@ -224,33 +223,11 @@ export default async function (ctx) {
         alignItems: "center",
         gap: 4,
         children: [
-          {
-            type: "image",
-            src: "sf-symbol:fuelpump.fill",
-            width: 14,
-            height: 14,
-            color: THEME.text
-          },
-          {
-            type: "text",
-            text: `${CITY}今日油价`,
-            font: { size: 14, weight: "semibold" },
-            textColor: THEME.text
-          },
+          { type: "image", src: "sf-symbol:fuelpump.fill", width: 14, height: 14, color: THEME.text },
+          { type: "text", text: `${CITY}今日油价`, font: { size: 14, weight: "semibold" }, textColor: THEME.text },
           { type: "spacer" },
-          {
-            type: "image",
-            src: "sf-symbol:clock.arrow.circlepath",
-            width: 12,
-            height: 12,
-            color: THEME.text
-          },
-          {
-            type: "text",
-            text: dateStr,
-            font: { size: 12 },
-            textColor: THEME.text
-          }
+          { type: "image", src: "sf-symbol:clock.arrow.circlepath", width: 12, height: 12, color: THEME.text },
+          { type: "text", text: dateStr, font: { size: 12 }, textColor: THEME.text }
         ]
       },
 
