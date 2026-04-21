@@ -1,5 +1,18 @@
 /**
- • 全国城市油价（自动识别省份 + 全国城市映射 + 缓存按省份 + 调试日志）
+ • 全国城市油价（自动识别省份 + 全国城市映射）
+ * 使用说明：本脚本需要申请API-KEY，在https://www.mxnzp.com?ic=SR8XUR申请（每天1000次，免费）通过修改变量环境更改
+ * 下一年调价日期需手动修改维护
+ *
+ * 变量环境配置
+ * 
+ * 名称：APP_ID
+ * 值：你的APP_ID
+ * 
+ * 名称：APP_SECRET
+ * 值：你的APP_SECRET
+ * 
+ * 名称：CITY
+ * 值：省份或城市（汉字）
 */
 
 export default async function (ctx) {
