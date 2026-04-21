@@ -218,7 +218,7 @@ export default async function (ctx) {
       { type: "spacer", length: 4 },
       {
         type: "text",
-        text: `¥${format(PRICE[key])}元/升`,
+        text: `¥${format(PRICE[key])}`,
         font: { size: 13, weight: "semibold" },
         textColor: THEME.text
       }
