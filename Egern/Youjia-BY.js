@@ -15,7 +15,7 @@
  * 
  * 下面两个按需添加
  * 
- * 名称：CTIY_MAP_URLS
+ * 名称：CITY_MAP_URLS
  * 值：你的远程json链接（可补全城市映射）
  * 
  * 名称：CALENDAR_URLS
