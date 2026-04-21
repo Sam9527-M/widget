@@ -20,7 +20,6 @@
  * 
  * 名称：CALENDAR_URLS
  * 值：你的远程json链接（维护油价调整日期）
-
  */
 
 export default async function (ctx) {
