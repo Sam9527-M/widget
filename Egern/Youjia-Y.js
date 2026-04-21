@@ -35,15 +35,13 @@ export default async function (ctx) {
     "天津": ["天津"],
     "重庆": ["重庆"],
     "广东": ["广州","深圳","佛山","东莞","珠海","中山","惠州","汕头","湛江","肇庆","江门","茂名","阳江","清远","潮州","揭阳","梅州","韶关","汕尾"],
-    "广西": ["南宁","柳州","桂林","梧州","北海","防城港","钦州","贵港","玉林","百色","河池","来宾","崇左","贺州"]
   };
 
   // ⭐ 城市映射远程地址（支持环境变量覆盖，多个地址用逗号分隔）
   const CITY_MAP_URLS = ctx.env.CITY_MAP_URLS
     ? ctx.env.CITY_MAP_URLS.split(",").map(s => s.trim())
     : [
-        "https://raw.githubusercontent.com/Sam9527-M/widget/refs/heads/main/CITY2.json",
-        "https://raw.githubusercontent.com/Sam9527-M/widget/refs/heads/main/CITY.json"
+        "https://你的域名/adjust_calendar.json"
       ];
 
   const CITY_MAP_CACHE_KEY = "city_map_cache";
@@ -115,8 +113,8 @@ export default async function (ctx) {
   const cacheValid = cache && nowTime - cache.time < CACHE_EXPIRE;
 
   // ⭐ app_id / app_secret 支持环境变量覆盖
-  const APP_ID = ctx.env.APP_ID || "lq3kkhsrll7hfaop";
-  const APP_SECRET = ctx.env.APP_SECRET || "I4FH8JgwaEZvGj2ZFLYNmtIJ6YZjiD9r";
+  const APP_ID = ctx.env.APP_ID || "你的APP_ID";
+  const APP_SECRET = ctx.env.APP_SECRET || "你的APP_SECET";
   if (cacheValid) {
     oil = cache.data;
   } else {
@@ -186,7 +184,6 @@ export default async function (ctx) {
   const CALENDAR_URLS = ctx.env.CALENDAR_URLS
     ? ctx.env.CALENDAR_URLS.split(",").map(s => s.trim())
     : [
-        "https://raw.githubusercontent.com/Sam9527-M/widget/refs/heads/main/TJRQ.json",
         "https://你的域名/adjust_calendar.json"
       ];
 
