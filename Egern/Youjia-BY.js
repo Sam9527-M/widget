@@ -10,8 +10,8 @@ export default async function (ctx) {
   // ⭐ 用户设置城市（环境变量）
   const CITY = ctx.env.CITY || "南宁";
 
-  // ⭐ 远程省份映射 URL
-  const REMOTE_PROVINCE_URL = "https://你的域名/province_city_map.json";
+  // ⭐ 远程省份映射 URL（环境变量可覆盖）
+  const REMOTE_PROVINCE_URL = ctx.env.PROVINCE_URL || "https://你的域名/province_city_map.json";
 
   let REMOTE_PROVINCE_MAP = null;
 
@@ -81,13 +81,16 @@ export default async function (ctx) {
 
   // ⭐ 判断缓存是否有效
   const cacheValid = cache && nowTime - cache.time < CACHE_EXPIRE;
-
   if (cacheValid) {
     oil = cache.data;
   } else {
+    // ⭐ app_id / app_secret（环境变量可覆盖）
+    const APP_ID = ctx.env.APP_ID || "lq3kkhsrll7hfaop";
+    const APP_SECRET = ctx.env.APP_SECRET || "I4FH8JgwaEZvGj2ZFLYNmtIJ6YZjiD9r";
+
     const API = `https://www.mxnzp.com/api/oil/search?province=${encodeURIComponent(
       PROVINCE
-    )}&app_id=lq3kkhsrll7hfaop&app_secret=I4FH8JgwaEZvGj2ZFLYNmtIJ6YZjiD9r`;
+    )}&app_id=${APP_ID}&app_secret=${APP_SECRET}`;
 
     try {
       const r = await ctx.http.get(API);
@@ -107,8 +110,8 @@ export default async function (ctx) {
     }
   }
 
-  // ⭐ 远程调价日历 URL
-  const REMOTE_CALENDAR_URL = "https://你的域名/adjust_calendar.json";
+  // ⭐ 远程调价日历 URL（环境变量可覆盖）
+  const REMOTE_CALENDAR_URL = ctx.env.CALENDAR_URL || "https://你的域名/adjust_calendar.json";
 
   let REMOTE_CALENDAR = null;
 
@@ -131,7 +134,6 @@ export default async function (ctx) {
   };
 
   const ADJUST_CALENDAR = REMOTE_CALENDAR || LOCAL_CALENDAR;
-
   // ⭐ 获取当前年份可用的调价日历
   function getCalendarForYear(year) {
     if (ADJUST_CALENDAR[year]) return ADJUST_CALENDAR[year];
@@ -165,6 +167,7 @@ export default async function (ctx) {
   const leftDays = Math.floor(diff / (1000 * 60 * 60 * 24));
   const leftHours = Math.floor((diff / (1000 * 60 * 60)) % 24);
   const countdownStr = `${leftDays}天${leftHours}小时`;
+
   const PRICE = {
     "92": oil?.t92 ? Number(oil.t92) : null,
     "95": oil?.t95 ? Number(oil.t95) : null,
@@ -201,7 +204,6 @@ export default async function (ctx) {
     `${String(now.getDate()).padStart(2, "0")} ` +
     `${String(now.getHours()).padStart(2, "0")}:` +
     `${String(now.getMinutes()).padStart(2, "0")}`;
-
   const item = (key) => ({
     type: "stack",
     direction: "column",
@@ -240,6 +242,7 @@ export default async function (ctx) {
       }
     ]
   });
+
   return {
     type: "widget",
     padding: [10, 8, 10, 8],
