@@ -20,11 +20,13 @@ export default async function (ctx) {
     "广西": ["南宁","柳州","桂林","梧州","北海","防城港","钦州","贵港","玉林","百色","河池","来宾","崇左","贺州"]
   };
 
-  // ⭐ 城市映射远程地址（双地址）
-  const CITY_MAP_URLS = [
-    "https://raw.githubusercontent.com/Sam9527-M/widget/refs/heads/main/CITY2.json",
-    "https://raw.githubusercontent.com/Sam9527-M/widget/refs/heads/main/CITY.json"
-  ];
+  // ⭐ 城市映射远程地址（支持环境变量覆盖，多个地址用逗号分隔）
+  const CITY_MAP_URLS = ctx.env.CITY_MAP_URLS
+    ? ctx.env.CITY_MAP_URLS.split(",").map(s => s.trim())
+    : [
+        "https://raw.githubusercontent.com/Sam9527-M/widget/refs/heads/main/CITY2.json",
+        "https://raw.githubusercontent.com/Sam9527-M/widget/refs/heads/main/CITY.json"
+      ];
 
   const CITY_MAP_CACHE_KEY = "city_map_cache";
   const CACHE_EXPIRE = 7 * 24 * 60 * 60 * 1000;
@@ -94,12 +96,15 @@ export default async function (ctx) {
   let oil = null;
   const cacheValid = cache && nowTime - cache.time < CACHE_EXPIRE;
 
+  // ⭐ app_id / app_secret 支持环境变量覆盖
+  const APP_ID = ctx.env.APP_ID || "lq3kkhsrll7hfaop";
+  const APP_SECRET = ctx.env.APP_SECRET || "I4FH8JgwaEZvGj2ZFLYNmtIJ6YZjiD9r";
   if (cacheValid) {
     oil = cache.data;
   } else {
     const API = `https://www.mxnzp.com/api/oil/search?province=${encodeURIComponent(
       PROVINCE
-    )}&app_id=lq3kkhsrll7hfaop&app_secret=I4FH8JgwaEZvGj2ZFLYNmtIJ6YZjiD9r`;
+    )}&app_id=${APP_ID}&app_secret=${APP_SECRET}`;
 
     try {
       const r = await ctx.http.get(API);
@@ -158,11 +163,14 @@ export default async function (ctx) {
     `${String(now.getDate()).padStart(2, "0")} ` +
     `${String(now.getHours()).padStart(2, "0")}:` +
     `${String(now.getMinutes()).padStart(2, "0")}`;
-  // ⭐ 调价日历远程地址（双地址）
-  const CALENDAR_URLS = [
-    "https://raw.githubusercontent.com/Sam9527-M/widget/refs/heads/main/TJRQ.json",
-    "https://你的域名/adjust_calendar.json"
-  ];
+
+  // ⭐ 调价日历远程地址（支持环境变量覆盖，多个地址用逗号分隔）
+  const CALENDAR_URLS = ctx.env.CALENDAR_URLS
+    ? ctx.env.CALENDAR_URLS.split(",").map(s => s.trim())
+    : [
+        "https://raw.githubusercontent.com/Sam9527-M/widget/refs/heads/main/TJRQ.json",
+        "https://你的域名/adjust_calendar.json"
+      ];
 
   const CALENDAR_CACHE_KEY = "oil_adjust_calendar_cache";
 
@@ -195,7 +203,6 @@ export default async function (ctx) {
     if (cache) return cache.data;
     return {};
   }
-
   const calendarData = await fetchAdjustCalendar();
   const year = now.getFullYear();
 
@@ -265,6 +272,7 @@ export default async function (ctx) {
       ]
     };
   }
+
   const item = (key) => ({
     type: "stack",
     direction: "column",
