@@ -24,8 +24,8 @@ export default async function (ctx) {
   const CITY = ctx.env.CITY || "南宁";
 
   // ⭐ 用户设置 app_id / app_secret（环境变量）
-  const APP_ID = ctx.env.APP_ID || "lq3kkhsrll7hfaop";
-  const APP_SECRET = ctx.env.APP_SECRET || "I4FH8JgwaEZvGj2ZFLYNmtIJ6YZjiD9r";
+  const APP_ID = ctx.env.APP_ID || "APP_ID";
+  const APP_SECRET = ctx.env.APP_SECRET || "APP_SECRET";
 
   // ⭐ 全国省份 → 城市列表（完整）
   const PROVINCE_CITY_MAP = {
