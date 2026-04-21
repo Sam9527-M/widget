@@ -1,5 +1,23 @@
 /**
- * 全国城市油价（远程城市映射 + 省份缓存 + 调价日历双地址 + 缓存 7 天）
+ * 全国城市油价（远程城市映射 + 调价日期远程json添加）
+ * 使用说明：本脚本需要申请API-KEY，在https://www.mxnzp.com?ic=SR8XUR申请（每天1000次，免费）通过修改变量环境更改
+ * 
+ * 变量环境配置
+ * 
+ * 名称：APP_ID
+ * 值：你的APP_ID
+ * 
+ * 名称：APP_SECRET
+ * 值：你的APP_SECRET
+ * 
+ * 名称：CITY
+ * 值：省份或城市（汉字）
+ * 
+ * 名称：CTIY_MAP_URLS
+ * 值：你的远程json链接（补全城市映射）
+ * 
+ * 名称：CALENDAR_URLS
+ * 值：你的远程json链接（维护油价调整日期）
  */
 
 export default async function (ctx) {
