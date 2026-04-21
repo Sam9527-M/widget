@@ -105,8 +105,8 @@ export default async function (ctx) {
     oil = cache.data;
   } else {
     // ⭐ app_id / app_secret（环境变量可覆盖）
-    const APP_ID = ctx.env.APP_ID || "lq3kkhsrll7hfaop";
-    const APP_SECRET = ctx.env.APP_SECRET || "I4FH8JgwaEZvGj2ZFLYNmtIJ6YZjiD9r";
+    const APP_ID = ctx.env.APP_ID || " APP_ID";
+    const APP_SECRET = ctx.env.APP_SECRET || "APP_SECRET";
 
     const API = `https://www.mxnzp.com/api/oil/search?province=${encodeURIComponent(
       PROVINCE
