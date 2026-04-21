@@ -13,7 +13,7 @@
  * 名称：CITY
  * 值：省份或城市（汉字）
  * 
- * 名称：CTIY_MAP_URLS
+ * 名称：CITY_MAP_URLS
  * 值：你的远程json链接（补全城市映射）
  * 
  * 名称：CALENDAR_URLS
