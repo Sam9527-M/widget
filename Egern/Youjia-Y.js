@@ -113,8 +113,8 @@ export default async function (ctx) {
   const cacheValid = cache && nowTime - cache.time < CACHE_EXPIRE;
 
   // ⭐ app_id / app_secret 支持环境变量覆盖
-  const APP_ID = ctx.env.APP_ID || "你的APP_ID";
-  const APP_SECRET = ctx.env.APP_SECRET || "你的APP_SECET";
+  const APP_ID = ctx.env.APP_ID || "APP_ID";
+  const APP_SECRET = ctx.env.APP_SECRET || "APP_SECET";
   if (cacheValid) {
     oil = cache.data;
   } else {
