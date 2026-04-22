@@ -328,14 +328,27 @@ export default async function (ctx) {
 
     { type: "spacer" },
 
-    ...(trendInfo ? [
+      ...(trendInfo ? [
+  {
+    type: "stack",
+    direction: "row",
+    alignItems: "center",
+    children: [
       {
         type: "text",
-        text: `预估:${trendInfo.text}`,
+        text: "预估：",                 // ⭐ 保持黑色
+        font: { size: 11, weight: "bold" },
+        textColor: THEME.text
+      },
+      {
+        type: "text",
+        text: trendInfo.text,          // ⭐ 箭头 + 数值保持原来的颜色
         font: { size: 11, weight: "bold" },
         textColor: trendInfo.color
       }
-    ] : [])
+    ]
+  }
+] : [])
   ]
 };
   }
@@ -468,7 +481,5 @@ export default async function (ctx) {
         ]
       }
     ]
-  };
-}
   };
 }
