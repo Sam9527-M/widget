@@ -62,6 +62,7 @@ export default async function (ctx) {
     "黑龙江": ["哈尔滨","齐齐哈尔","牡丹江","佳木斯","大庆","鸡西","鹤岗","双鸭山","伊春","七台河","黑河","绥化","大兴安岭"],
     "内蒙古": ["呼和浩特","包头","乌海","赤峰","通辽","鄂尔多斯","呼伦贝尔","巴彦淖尔","乌兰察布","兴安盟","锡林郭勒盟","阿拉善盟"]
   };
+
   // ⭐ 自动生成 城市 → 省份 映射
   const CITY_TO_PROVINCE = {};
   for (const [prov, cities] of Object.entries(PROVINCE_CITY_MAP)) {
@@ -70,7 +71,6 @@ export default async function (ctx) {
 
   // ⭐ 自动识别省份
   const PROVINCE = CITY_TO_PROVINCE[CITY] || CITY;
-
   // ⭐ 缓存 key（按省份区分）
   const CACHE_KEY = `oil_cache_${PROVINCE}`;
 
@@ -111,6 +111,7 @@ export default async function (ctx) {
       if (cache) oil = cache.data;
     }
   }
+
   // ⭐ 如果仍然没有数据 → 显示空
   const PRICE = {
     "92": oil?.t92 ? Number(oil.t92) : null,
@@ -145,8 +146,99 @@ export default async function (ctx) {
   // ⭐ 刷新时间
   const now = new Date();
   const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  // ⭐ 省份拼音（用于网页抓取）
+  const PROVINCE_PINYIN = {
+    "北京": "beijing","上海": "shanghai","天津": "tianjin","重庆": "chongqing",
+    "广东": "guangdong","广西": "guangxi","江苏": "jiangsu","浙江": "zhejiang",
+    "山东": "shandong","河南": "henan","河北": "hebei","四川": "sichuan",
+    "湖北": "hubei","湖南": "hunan","安徽": "anhui","福建": "fujian",
+    "江西": "jiangxi","辽宁": "liaoning","陕西": "shanxi-3","山西": "shanxi-1",
+    "吉林": "jilin","黑龙江": "heilongjiang","云南": "yunnan","贵州": "guizhou",
+    "甘肃": "gansu","青海": "qinghai","宁夏": "ningxia","新疆": "xinjiang",
+    "西藏": "xizang","内蒙古": "neimenggu","海南": "hainan"
+  };
 
-  // ⭐ 调价日历
+  const PROVINCE_CODE = PROVINCE_PINYIN[PROVINCE] || PROVINCE;
+
+  // ⭐ 抓取网页
+  async function fetchWebPage(code) {
+    const url = `http://m.qiyoujiage.com/${code}.shtml`;
+    try {
+      const resp = await ctx.http.get(url, {
+        headers: {
+          "user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X)",
+          "referer": "http://m.qiyoujiage.com/"
+        },
+        timeout: 15000
+      });
+      if (resp.status === 200) return resp.text();
+    } catch (e) {}
+    return null;
+  }
+
+  // ⭐ 解析网页调价日期
+  function parseAdjustDate(html) {
+    if (!html) return null;
+    const reg =
+      /(下次调价时间|下一轮油价调整窗口|预计下次调价时间|下次油价调整|下次油价|下轮油价调整窗口)[^0-9]*((\d{4})年)?(\d{1,2})月(\d{1,2})日/;
+    const m = html.match(reg);
+    if (!m) return null;
+
+    const year = m[3] ? Number(m[3]) : now.getFullYear();
+    const month = Number(m[4]) - 1;
+    const day = Number(m[5]);
+
+    const date = new Date(year, month, day);
+    date.setHours(24, 0, 0, 0);
+    return date;
+  }
+
+  // ⭐ 解析网页调价趋势
+  function parseTrend(html) {
+    if (!html) return null;
+
+    const reg1 = /<div class="tishi">[\s\S]*?<span>([^<]+)<\/span>[\s\S]*?<br\/>([\s\S]+?)<br\/>/;
+    const reg2 = /<div class="ts">[\s\S]*?<span>([^<]+)<\/span>[\s\S]*?<br\/>([\s\S]+?)<br\/>/;
+
+    const t = html.match(reg1) || html.match(reg2);
+    if (!t) return null;
+
+    const content = t[2].trim();
+
+    if (
+      content.includes("不作调整") ||
+      content.includes("不做调整") ||
+      content.includes("不调整") ||
+      content.includes("油价不变") ||
+      content.includes("本轮不调价")
+    ) {
+      return { text: "不作调整", color: "#888888" };
+    }
+
+    const isDown = content.includes("下调");
+    const arrow = isDown ? "↓" : "↑";
+    const color = isDown ? "#34C759" : "#FF3B30";
+
+    const nums = content.match(/([\d\.]+)\s*元\/升/g);
+    let amount = "";
+    if (nums && nums.length >= 2) {
+      const arr = nums.map(x => x.match(/([\d\.]+)/)[1]);
+      amount = `${arr[0]}-${arr[1]}`;
+    }
+
+    return { text: `${arrow} ${amount} 元/升`, color };
+  }
+
+  // ⭐ 获取网页 HTML
+  const html = await fetchWebPage(PROVINCE_CODE);
+
+  // ⭐ 网页优先调价日期
+  let nextAdjustWeb = html ? parseAdjustDate(html) : null;
+
+  // ⭐ 网页调价趋势
+  let trendInfo = html ? parseTrend(html) : null;
+
+  // ⭐ 本地调价日历（保持你原来的逻辑）
   const ADJUST_CALENDAR = {
     2026: [
       "01-06","01-20","02-03","02-24","03-09","03-23",
@@ -178,7 +270,10 @@ export default async function (ctx) {
     return new Date(year + 1, m - 1, d, 24, 0, 0);
   }
 
-  const nextAdjust = getNextAdjustDate();
+  // ⭐ 最终调价日期（网页优先）
+  const nextAdjust = nextAdjustWeb || getNextAdjustDate();
+
+  // ⭐ UI 日期 + 倒计时
   const uiDate = new Date(nextAdjust.getTime());
   const uiDateStr = `${uiDate.getMonth() + 1}月${uiDate.getDate()}日`;
 
@@ -186,6 +281,48 @@ export default async function (ctx) {
   const leftDays = Math.floor(diff / (1000 * 60 * 60 * 24));
   const leftHours = Math.floor((diff / (1000 * 60 * 60)) % 24);
   const countdownStr = `${leftDays}天${leftHours}小时`;
+  // ⭐ UI：调价信息（左：日期 + 倒计时，右：趋势）
+  const adjustUI = {
+    type: "stack",
+    direction: "row",
+    alignItems: "center",
+    padding: [4, 0, 0, 2],
+    children: [
+      {
+        type: "text",
+        text: `下轮调价：`,
+        font: { size: 12, weight: "bold" },
+        textColor: THEME.text
+      },
+      {
+        type: "text",
+        text: `${uiDateStr}（${countdownStr}）`,
+        font: { size: 12, weight: "bold" },
+        textColor: "#FF9500"
+      },
+
+      { type: "spacer" },
+
+      ...(trendInfo
+        ? [
+            {
+              type: "text",
+              text: `预估：`,
+              font: { size: 12, weight: "bold" },
+              textColor: THEME.text
+            },
+            {
+              type: "text",
+              text: trendInfo.text,
+              font: { size: 12, weight: "bold" },
+              textColor: trendInfo.color
+            }
+          ]
+        : [])
+    ]
+  };
+
+  // ⭐ 四个油价 item（保持原样）
   const item = (key) => ({
     type: "stack",
     direction: "column",
@@ -225,11 +362,13 @@ export default async function (ctx) {
     ]
   });
 
+  // ⭐ 最终 UI 输出
   return {
     type: "widget",
     padding: [10, 8, 10, 8],
     gap: 6,
     children: [
+      // 顶部标题栏
       {
         type: "stack",
         direction: "row",
@@ -244,6 +383,7 @@ export default async function (ctx) {
         ]
       },
 
+      // 中间油价四格
       {
         type: "stack",
         direction: "row",
@@ -253,26 +393,9 @@ export default async function (ctx) {
         children: [item("92"), item("95"), item("98"), item("0")]
       },
 
-      {
-        type: "stack",
-        direction: "row",
-        alignItems: "center",
-        padding: [4, 0, 0, 2],
-        children: [
-          {
-            type: "text",
-            text: `下轮调价：`,
-            font: { size: 12, weight: "bold" },
-            textColor: THEME.text
-          },
-          {
-            type: "text",
-            text: `${uiDateStr}（${countdownStr}）`,
-            font: { size: 12, weight: "bold" },
-            textColor: "#FF9500"
-          }
-        ]
-      }
+      // ⭐ 底部调价日期 + 趋势（网页优先）
+      adjustUI
     ]
   };
 }
+
