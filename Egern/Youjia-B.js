@@ -16,14 +16,15 @@
 */
 
 export default async function (ctx) {
+
+  // ⭐ 提前声明 now，避免后续闭包引用报错
+  const now = new Date();
+
   const THEME = {
     text: { light: "#000000", dark: "#FFFFFF" }
   };
 
-  // ⭐ 用户设置城市（环境变量）
   const CITY = ctx.env.CITY || "南宁";
-
-  // ⭐ 用户设置 app_id / app_secret（环境变量）
   const APP_ID = ctx.env.APP_ID || "APP_ID";
   const APP_SECRET = ctx.env.APP_SECRET || "APP_SECRET";
 
@@ -60,7 +61,8 @@ export default async function (ctx) {
     "辽宁": ["沈阳","大连","鞍山","抚顺","本溪","丹东","锦州","营口","阜新","辽阳","盘锦","铁岭","朝阳","葫芦岛"],
     "吉林": ["长春","吉林","四平","辽源","通化","白山","松原","白城","延边"],
     "黑龙江": ["哈尔滨","齐齐哈尔","牡丹江","佳木斯","大庆","鸡西","鹤岗","双鸭山","伊春","七台河","黑河","绥化","大兴安岭"],
-    "内蒙古": ["呼和浩特","包头","乌海","赤峰","通辽","鄂尔多斯","呼伦贝尔","巴彦淖尔","乌兰察布","兴安盟","锡林郭勒盟","阿拉善盟"]
+    "内蒙古": ["呼和浩特","包头","乌海","赤峰","通辽","鄂尔多斯","呼伦贝尔","巴彦淖尔","乌兰察布","兴安盟","锡林郭勒盟","阿拉善盟"],
+    "宁夏": ["银川","石嘴山","吴忠","固原","中卫"]
   };
 
   // ⭐ 自动生成 城市 → 省份 映射
@@ -69,27 +71,19 @@ export default async function (ctx) {
     cities.forEach(c => CITY_TO_PROVINCE[c] = prov);
   }
 
-  // ⭐ 自动识别省份
   const PROVINCE = CITY_TO_PROVINCE[CITY] || CITY;
-  // ⭐ 缓存 key（按省份区分）
   const CACHE_KEY = `oil_cache_${PROVINCE}`;
-
-  // ⭐ 缓存有效期：7 天
   const CACHE_EXPIRE = 7 * 24 * 60 * 60 * 1000;
 
-  // ⭐ 读取缓存
   const cache = await ctx.storage.get(CACHE_KEY);
   const nowTime = Date.now();
 
   let oil = null;
-
-  // ⭐ 判断缓存是否有效
   const cacheValid = cache && nowTime - cache.time < CACHE_EXPIRE;
 
   if (cacheValid) {
     oil = cache.data;
   } else {
-    // ⭐ 请求 API（使用环境变量）
     const API = `https://www.mxnzp.com/api/oil/search?province=${encodeURIComponent(
       PROVINCE
     )}&app_id=${APP_ID}&app_secret=${APP_SECRET}`;
@@ -100,10 +94,7 @@ export default async function (ctx) {
 
       if (json?.code === 1) {
         oil = json.data;
-        await ctx.storage.set(CACHE_KEY, {
-          time: nowTime,
-          data: oil
-        });
+        await ctx.storage.set(CACHE_KEY, { time: nowTime, data: oil });
       } else if (cache) {
         oil = cache.data;
       }
@@ -111,8 +102,6 @@ export default async function (ctx) {
       if (cache) oil = cache.data;
     }
   }
-
-  // ⭐ 如果仍然没有数据 → 显示空
   const PRICE = {
     "92": oil?.t92 ? Number(oil.t92) : null,
     "95": oil?.t95 ? Number(oil.t95) : null,
@@ -143,10 +132,9 @@ export default async function (ctx) {
 
   const format = (v) => (v ? Number(v).toFixed(2) : "-");
 
-  // ⭐ 刷新时间
-  const now = new Date();
+  // ⭐ 刷新时间（now 已在顶部声明，此处直接使用）
   const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-  // ⭐ 省份拼音（用于网页抓取）
+
   const PROVINCE_PINYIN = {
     "北京": "beijing","上海": "shanghai","天津": "tianjin","重庆": "chongqing",
     "广东": "guangdong","广西": "guangxi","江苏": "jiangsu","浙江": "zhejiang",
@@ -176,7 +164,7 @@ export default async function (ctx) {
     return null;
   }
 
-  // ⭐ 解析网页调价日期
+  // ⭐ 解析网页调价日期（修复跨年年份判断）
   function parseAdjustDate(html) {
     if (!html) return null;
     const reg =
@@ -184,9 +172,21 @@ export default async function (ctx) {
     const m = html.match(reg);
     if (!m) return null;
 
-    const year = m[3] ? Number(m[3]) : now.getFullYear();
     const month = Number(m[4]) - 1;
     const day = Number(m[5]);
+
+    let year;
+    if (m[3]) {
+      // 网页明确给出了年份，直接用
+      year = Number(m[3]);
+    } else {
+      // 没有年份，先尝试今年
+      year = now.getFullYear();
+      const tentative = new Date(year, month, day);
+      tentative.setHours(24, 0, 0, 0);
+      // 日期已过则自动 +1 年
+      if (tentative <= now) year = year + 1;
+    }
 
     const date = new Date(year, month, day);
     date.setHours(24, 0, 0, 0);
@@ -228,17 +228,11 @@ export default async function (ctx) {
 
     return { text: `${arrow} ${amount} 元/升`, color };
   }
-
-  // ⭐ 获取网页 HTML
   const html = await fetchWebPage(PROVINCE_CODE);
 
-  // ⭐ 网页优先调价日期
   let nextAdjustWeb = html ? parseAdjustDate(html) : null;
-
-  // ⭐ 网页调价趋势
   let trendInfo = html ? parseTrend(html) : null;
 
-  // ⭐ 本地调价日历（保持你原来的逻辑）
   const ADJUST_CALENDAR = {
     2026: [
       "01-06","01-20","02-03","02-24","03-09","03-23",
@@ -248,8 +242,8 @@ export default async function (ctx) {
     ]
   };
 
-  function getCalendarForYear(year) {
-    if (ADJUST_CALENDAR[year]) return ADJUST_CALENDAR[year];
+  function getCalendarForYear(y) {
+    if (ADJUST_CALENDAR[y]) return ADJUST_CALENDAR[y];
     const years = Object.keys(ADJUST_CALENDAR).map(Number).sort();
     return ADJUST_CALENDAR[years[years.length - 1]];
   }
@@ -257,6 +251,7 @@ export default async function (ctx) {
   const year = now.getFullYear();
   const calendar = getCalendarForYear(year);
 
+  // ⭐ 修复跨年兜底：当年日历用完后，取下一年日历第一条
   function getNextAdjustDate() {
     const today = new Date();
 
@@ -266,14 +261,15 @@ export default async function (ctx) {
       if (adjust > today) return adjust;
     }
 
-    const [m, d] = calendar[0].split("-").map(Number);
-    return new Date(year + 1, m - 1, d, 24, 0, 0);
+    // 当年全部用完，找下一年日历
+    const nextYear = year + 1;
+    const nextCalendar = getCalendarForYear(nextYear);
+    const [m, d] = nextCalendar[0].split("-").map(Number);
+    return new Date(nextYear, m - 1, d, 24, 0, 0);
   }
 
-  // ⭐ 最终调价日期（网页优先）
   const nextAdjust = nextAdjustWeb || getNextAdjustDate();
 
-  // ⭐ UI 日期 + 倒计时
   const uiDate = new Date(nextAdjust.getTime());
   const uiDateStr = `${uiDate.getMonth() + 1}月${uiDate.getDate()}日`;
 
@@ -281,7 +277,7 @@ export default async function (ctx) {
   const leftDays = Math.floor(diff / (1000 * 60 * 60 * 24));
   const leftHours = Math.floor((diff / (1000 * 60 * 60)) % 24);
   const countdownStr = `${leftDays}天${leftHours}小时`;
-  // ⭐ UI：调价信息（左：日期 + 倒计时，右：趋势）
+
   const adjustUI = {
     type: "stack",
     direction: "row",
@@ -321,8 +317,6 @@ export default async function (ctx) {
         : [])
     ]
   };
-
-  // ⭐ 四个油价 item（保持原样）
   const item = (key) => ({
     type: "stack",
     direction: "column",
@@ -362,13 +356,11 @@ export default async function (ctx) {
     ]
   });
 
-  // ⭐ 最终 UI 输出
   return {
     type: "widget",
     padding: [10, 8, 10, 8],
     gap: 6,
     children: [
-      // 顶部标题栏
       {
         type: "stack",
         direction: "row",
@@ -383,7 +375,6 @@ export default async function (ctx) {
         ]
       },
 
-      // 中间油价四格
       {
         type: "stack",
         direction: "row",
@@ -393,9 +384,7 @@ export default async function (ctx) {
         children: [item("92"), item("95"), item("98"), item("0")]
       },
 
-      // ⭐ 底部调价日期 + 趋势（网页优先）
       adjustUI
     ]
   };
 }
-
