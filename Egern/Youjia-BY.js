@@ -45,10 +45,7 @@ export default async function (ctx) {
 
   // ⭐ 本地 fallback（防止远程不可用）
   const LOCAL_PROVINCE_MAP = {
-    "北京": ["北京"],
-    "上海": ["上海"],
-    "天津": ["天津"],
-    "重庆": ["重庆"],
+    "北京": ["北京"], "上海": ["上海"], "天津": ["天津"], "重庆": ["重庆"],
     "广东": ["广州","深圳","佛山","东莞","珠海","中山","惠州","汕头","湛江","肇庆","江门","茂名","阳江","清远","潮州","揭阳","梅州","韶关","汕尾"],
     "广西": ["南宁","柳州","桂林","梧州","北海","防城港","钦州","贵港","玉林","百色","河池","来宾","崇左","贺州"],
     "浙江": ["杭州","宁波","温州","嘉兴","湖州","绍兴","金华","衢州","舟山","台州","丽水"],
@@ -157,24 +154,120 @@ export default async function (ctx) {
   function getCalendarForYear(year) {
     const yStr = String(year);
 
-    // 优先匹配字符串 key
     if (ADJUST_CALENDAR[yStr]) return ADJUST_CALENDAR[yStr];
-
-    // 再尝试数字 key（兼容旧 JSON）
     if (ADJUST_CALENDAR[year]) return ADJUST_CALENDAR[year];
 
-    // 都没有 → fallback 到最大年份
     const years = Object.keys(ADJUST_CALENDAR).map(Number).sort();
     const last = years[years.length - 1];
 
     return ADJUST_CALENDAR[String(last)] || ADJUST_CALENDAR[last];
   }
 
+  // ⭐ 全局统一时间（避免 dateStr 丢失）
   const now = new Date();
   const year = now.getFullYear();
   const calendar = getCalendarForYear(year);
 
-  // ⭐ 找到下一次调价日期
+  // ⭐ 顶部时间字符串
+  const dateStr =
+    `${now.getFullYear()}-` +
+    `${String(now.getMonth() + 1).padStart(2, "0")}-` +
+    `${String(now.getDate()).padStart(2, "0")} ` +
+    `${String(now.getHours()).padStart(2, "0")}:` +
+    `${String(now.getMinutes()).padStart(2, "0")}`;
+  // ⭐ 省份拼音（用于网页抓取）
+  const PROVINCE_PINYIN = {
+    "北京": "beijing","上海": "shanghai","天津": "tianjin","重庆": "chongqing",
+    "广东": "guangdong","广西": "guangxi","江苏": "jiangsu","浙江": "zhejiang",
+    "山东": "shandong","河南": "henan","河北": "hebei","四川": "sichuan",
+    "湖北": "hubei","湖南": "hunan","安徽": "anhui","福建": "fujian",
+    "江西": "jiangxi","辽宁": "liaoning","陕西": "shanxi-3","山西": "shanxi-1",
+    "吉林": "jilin","黑龙江": "heilongjiang","云南": "yunnan","贵州": "guizhou",
+    "甘肃": "gansu","青海": "qinghai","宁夏": "ningxia","新疆": "xinjiang",
+    "西藏": "xizang","内蒙古": "neimenggu","海南": "hainan"
+  };
+
+  const PROVINCE_CODE = PROVINCE_PINYIN[PROVINCE] || PROVINCE;
+
+  // ⭐ 抓取网页 HTML
+  async function fetchWebPage(code) {
+    const url = `http://m.qiyoujiage.com/${code}.shtml`;
+    try {
+      const resp = await ctx.http.get(url, {
+        headers: {
+          "user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X)",
+          "referer": "http://m.qiyoujiage.com/"
+        },
+        timeout: 15000
+      });
+      if (resp.status === 200) return resp.text();
+    } catch (e) {}
+    return null;
+  }
+
+  // ⭐ 解析网页调价日期
+  function parseAdjustDate(html) {
+    if (!html) return null;
+    const reg =
+      /(下次调价时间|下一轮油价调整窗口|预计下次调价时间|下次油价调整|下次油价|下轮油价调整窗口)[^0-9]*((\d{4})年)?(\d{1,2})月(\d{1,2})日/;
+    const m = html.match(reg);
+    if (!m) return null;
+
+    const year2 = m[3] ? Number(m[3]) : now.getFullYear();
+    const month = Number(m[4]) - 1;
+    const day = Number(m[5]);
+
+    const date = new Date(year2, month, day);
+    date.setHours(24, 0, 0, 0);
+    return date;
+  }
+
+  // ⭐ 解析网页调价趋势
+  function parseTrend(html) {
+    if (!html) return null;
+
+    const reg1 = /<div class="tishi">[\s\S]*?<span>([^<]+)<\/span>[\s\S]*?<br\/>([\s\S]+?)<br\/>/;
+    const reg2 = /<div class="ts">[\s\S]*?<span>([^<]+)<\/span>[\s\S]*?<br\/>([\s\S]+?)<br\/>/;
+
+    const t = html.match(reg1) || html.match(reg2);
+    if (!t) return null;
+
+    const content = t[2].trim();
+
+    if (
+      content.includes("不作调整") ||
+      content.includes("不做调整") ||
+      content.includes("不调整") ||
+      content.includes("油价不变") ||
+      content.includes("本轮不调价")
+    ) {
+      return { text: "不作调整", color: "#888888" };
+    }
+
+    const isDown = content.includes("下调");
+    const arrow = isDown ? "↓" : "↑";
+    const color = isDown ? "#34C759" : "#FF3B30";
+
+    const nums = content.match(/([\d\.]+)\s*元\/升/g);
+    let amount = "";
+    if (nums && nums.length >= 2) {
+      const arr = nums.map(x => x.match(/([\d\.]+)/)[1]);
+      amount = `${arr[0]}-${arr[1]}`;
+    }
+
+    return { text: `${arrow} ${amount} 元/升`, color };
+  }
+
+  // ⭐ 获取网页 HTML
+  const html = await fetchWebPage(PROVINCE_CODE);
+
+  // ⭐ 网页优先调价日期
+  let nextAdjustWeb = html ? parseAdjustDate(html) : null;
+
+  // ⭐ 网页调价趋势
+  let trendInfo = html ? parseTrend(html) : null;
+
+  // ⭐ 本地/远程日历兜底
   function getNextAdjustDate() {
     const today = new Date();
 
@@ -184,12 +277,14 @@ export default async function (ctx) {
       if (adjust > today) return adjust;
     }
 
-    // 如果今年都过完了 → 用下一年第一天
     const [m, d] = calendar[0].split("-").map(Number);
     return new Date(year + 1, m - 1, d, 24, 0, 0);
   }
 
-  const nextAdjust = getNextAdjustDate();
+  // ⭐ 最终调价日期（网页优先）
+  const nextAdjust = nextAdjustWeb || getNextAdjustDate();
+
+  // ⭐ UI 日期 + 倒计时
   const uiDate = new Date(nextAdjust.getTime());
   const uiDateStr = `${uiDate.getMonth() + 1}月${uiDate.getDate()}日`;
 
@@ -197,13 +292,14 @@ export default async function (ctx) {
   const leftDays = Math.floor(diff / (1000 * 60 * 60 * 24));
   const leftHours = Math.floor((diff / (1000 * 60 * 60)) % 24);
   const countdownStr = `${leftDays}天${leftHours}小时`;
-
+  // ⭐ 四种油价数据（必须在 item() 之前）
   const PRICE = {
     "92": oil?.t92 ? Number(oil.t92) : null,
     "95": oil?.t95 ? Number(oil.t95) : null,
     "98": oil?.t98 ? Number(oil.t98) : null,
     "0": oil?.t0 ? Number(oil.t0) : null
   };
+
   const ICON_MAP = {
     "92": "fuelpump.fill",
     "95": "fuelpump.fill",
@@ -227,14 +323,48 @@ export default async function (ctx) {
 
   const format = (v) => (v ? Number(v).toFixed(2) : "-");
 
-  const now2 = new Date();
-  const dateStr =
-    `${now2.getFullYear()}-` +
-    `${String(now2.getMonth() + 1).padStart(2, "0")}-` +
-    `${String(now2.getDate()).padStart(2, "0")} ` +
-    `${String(now2.getHours()).padStart(2, "0")}:` +
-    `${String(now2.getMinutes()).padStart(2, "0")}`;
+  // ⭐ UI：调价信息（左：日期 + 倒计时，右：趋势）
+  const adjustUI = {
+    type: "stack",
+    direction: "row",
+    alignItems: "center",
+    padding: [4, 0, 0, 2],
+    children: [
+      {
+        type: "text",
+        text: `下轮调价：`,
+        font: { size: 12, weight: "bold" },
+        textColor: THEME.text
+      },
+      {
+        type: "text",
+        text: `${uiDateStr}（${countdownStr}）`,
+        font: { size: 12, weight: "bold" },
+        textColor: "#FF9500"
+      },
 
+      { type: "spacer" },
+
+      ...(trendInfo
+        ? [
+            {
+              type: "text",
+              text: `预估：`,
+              font: { size: 12, weight: "bold" },
+              textColor: THEME.text
+            },
+            {
+              type: "text",
+              text: trendInfo.text,
+              font: { size: 12, weight: "bold" },
+              textColor: trendInfo.color
+            }
+          ]
+        : [])
+    ]
+  };
+
+  // ⭐ 四个油价 item
   const item = (key) => ({
     type: "stack",
     direction: "column",
@@ -274,11 +404,13 @@ export default async function (ctx) {
     ]
   });
 
+  // ⭐ 最终 UI 输出
   return {
     type: "widget",
     padding: [10, 8, 10, 8],
     gap: 6,
     children: [
+      // 顶部标题栏
       {
         type: "stack",
         direction: "row",
@@ -315,6 +447,7 @@ export default async function (ctx) {
         ]
       },
 
+      // 中间油价四格
       {
         type: "stack",
         direction: "row",
@@ -324,26 +457,9 @@ export default async function (ctx) {
         children: [item("92"), item("95"), item("98"), item("0")]
       },
 
-      {
-        type: "stack",
-        direction: "row",
-        alignItems: "center",
-        padding: [4, 0, 0, 2],
-        children: [
-          {
-            type: "text",
-            text: `下轮调价：`,
-            font: { size: 12, weight: "bold" },
-            textColor: THEME.text
-          },
-          {
-            type: "text",
-            text: `${uiDateStr}（${countdownStr}）`,
-            font: { size: 12, weight: "bold" },
-            textColor: "#FF9500"
-          }
-        ]
-      }
+      // ⭐ 底部调价日期 + 趋势（网页优先）
+      adjustUI
     ]
   };
 }
+
