@@ -160,6 +160,7 @@ export default async function (ctx) {
       if (cache) oil = cache.data;
     }
   }
+
   // ⭐ 省份拼音映射（用于网页抓取）
   const PROVINCE_PINYIN = {
     "北京": "beijing","上海": "shanghai","天津": "tianjin","重庆": "chongqing",
@@ -192,64 +193,77 @@ export default async function (ctx) {
     return null;
   }
 
-  // ⭐ 解析调价日期（修复跨年问题）
-  function parseAdjustDate(html) {
-    if (!html) return null;
-    const reg =
-      /(下次调价时间|下一轮油价调整窗口|预计下次调价时间|下次油价调整|下次油价|下轮油价调整窗口)[^0-9]*((\d{4})年)?(\d{1,2})月(\d{1,2})日/;
-    const m = html.match(reg);
-    if (!m) return null;
+  // ⭐ 网页数据统一解析（提取自您的老脚本）
+  function parseWebData(html) {
+    if (!html) return { prices: null, date: null, trend: null };
 
-    const parsedMonth = Number(m[4]) - 1;
-    const parsedDay = Number(m[5]);
+    let parsedPrices = null;
+    let nextAdjustDate = null;
+    let trendInfo = null;
 
-    let parsedYear;
-    if (m[3]) {
-      parsedYear = Number(m[3]);
-    } else {
-      // 无年份时推断：候选日期若已过则为明年
-      const candidate = new Date(now.getFullYear(), parsedMonth, parsedDay, 24, 0, 0);
-      parsedYear = candidate > now ? now.getFullYear() : now.getFullYear() + 1;
+    // 1. 解析油价
+    const regPrice = /<dl>[\s\S]+?<dt>(.*油)<\/dt>[\s\S]+?<dd>(.*)\(元\)<\/dd>/gm;
+    const priceList = [];
+    let m = null;
+    while ((m = regPrice.exec(html)) !== null) {
+      if (m.index === regPrice.lastIndex) regPrice.lastIndex++;
+      priceList.push({ name: m[1].trim(), value: m[2].trim() });
+    }
+    if (priceList.length > 0) {
+      const nameMap = { "92 号": "t92", "92": "t92", "95 号": "t95", "95": "t95", "98 号": "t98", "98": "t98", "0 号": "t0", "柴油": "t0" };
+      let tempPrices = {};
+      priceList.forEach(item => {
+        const key = Object.keys(nameMap).find(k => item.name.includes(k));
+        if (key) {
+          const priceVal = parseFloat(item.value);
+          if (!isNaN(priceVal)) tempPrices[nameMap[key]] = priceVal;
+        }
+      });
+      if (Object.keys(tempPrices).length > 0) parsedPrices = tempPrices;
     }
 
-    const date = new Date(parsedYear, parsedMonth, parsedDay);
-    date.setHours(24, 0, 0, 0);
-    return date;
-  }
+    // 2. 解析调价趋势与日期
+    const regTrend = /<div class="tishi">[\s\S]*?<span>([^<]+)<\/span>[\s\S]*?<br\/>([\s\S]+?)<br\/>/;
+    const trendMatch = html.match(regTrend);
 
-  // ⭐ 解析调价趋势
-  function parseTrend(html) {
-    if (!html) return null;
+    if (trendMatch && trendMatch.length >= 3) {
+      // 提取日期
+      const dateStrMatch = trendMatch[1].match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
+      if (dateStrMatch) {
+        // 设置到当天24点，对齐倒计时逻辑
+        nextAdjustDate = new Date(Number(dateStrMatch[1]), Number(dateStrMatch[2]) - 1, Number(dateStrMatch[3]), 24, 0, 0);
+      }
 
-    const reg1 = /<div class="tishi">[\s\S]*?<span>([^<]+)<\/span>[\s\S]*?<br\/>([\s\S]+?)<br\/>/;
-    const reg2 = /<div class="ts">[\s\S]*?<span>([^<]+)<\/span>[\s\S]*?<br\/>([\s\S]+?)<br\/>/;
-    const t = html.match(reg1) || html.match(reg2);
-    if (!t) return null;
+      // 提取趋势
+      const valuePart = trendMatch[2];
+      if (valuePart.includes("不作调整") || valuePart.includes("不做调整") || valuePart.includes("搁浅")) {
+        trendInfo = { text: "不作调整", color: "#888888" };
+      } else {
+        const trend = (valuePart.includes('下调') || valuePart.includes('下跌')) ? '↓' : '↑';
+        const color = trend === '↓' ? "#34C759" : "#FF3B30";
+        let amount = "";
 
-    const content = t[2].trim();
-
-    if (
-      content.includes("不作调整") ||
-      content.includes("不做调整") ||
-      content.includes("不调整") ||
-      content.includes("油价不变") ||
-      content.includes("本轮不调价")
-    ) {
-      return { text: "不作调整", color: "#888888" };
+        const allPrices = valuePart.match(/([\d\.]+)\s*元\/升/g);
+        if (allPrices && allPrices.length >= 2) {
+          const nums = allPrices.map(p => p.match(/([\d\.]+)/)[1]);
+          amount = `${nums[0]}-${nums[nums.length - 1]}`;
+        } else {
+          const allTons = valuePart.match(/([\d]+)\s*元(?:\/吨)?/g);
+          if (allTons && allTons.length >= 2) {
+            const nums = allTons.map(p => p.match(/([\d]+)/)[1]);
+            amount = `${nums[0]}-${nums[nums.length - 1]}`;
+          } else {
+            const singleMatch = valuePart.match(/([\d\.]+)\s*元\/升/);
+            if (singleMatch) {
+              amount = singleMatch[1];
+            }
+          }
+        }
+        trendInfo = { text: amount ? `${trend} ${amount} 元/升` : `${trend} 元/升`, color };
+      }
     }
 
-    const isDown = content.includes("下调");
-    const arrow = isDown ? "↓" : "↑";
-    const color = isDown ? "#34C759" : "#FF3B30";
-
-    const nums = content.match(/([\d\.]+)\s*元\/升/g);
-    let amount = "";
-    if (nums && nums.length >= 2) {
-      const arr = nums.map(x => x.match(/([\d\.]+)/)[1]);
-      amount = `${arr[0]}-${arr[1]}`;
-    }
-
-    return { text: `${arrow} ${amount} 元/升`, color };
+    return { prices: parsedPrices, date: nextAdjustDate, trend: trendInfo };
   }
 
   // ⭐ 本地/远程日历兜底（修复跨年）
@@ -273,12 +287,22 @@ export default async function (ctx) {
     const [m, d] = calendar[0].split("-").map(Number);
     return new Date(year + 1, m - 1, d, 24, 0, 0);
   }
-  // ⭐ 获取网页数据
-  const html = await fetchWebPage(PROVINCE_CODE);
-  const nextAdjustWeb = html ? parseAdjustDate(html) : null;
-  const trendInfo = html ? parseTrend(html) : null;
 
-  // ⭐ 最终调价日期（网页优先，日历兜底）
+  // ⭐ 获取网页数据进行解析
+  const html = await fetchWebPage(PROVINCE_CODE);
+  const webData = parseWebData(html);
+
+  // ⭐ 油价数据兜底：若 API 无数据，则尝试使用解析好的网页油价数据
+  if (!oil || (!oil.t92 && !oil.t95)) {
+    if (webData.prices) {
+      oil = webData.prices;
+    }
+  }
+
+  const nextAdjustWeb = webData.date;
+  const trendInfo = webData.trend;
+
+  // ⭐ 最终调价日期（网页优先，日历兜底，保留原有顺序）
   const nextAdjust = nextAdjustWeb || getNextAdjustDate();
 
   // ⭐ 倒计时计算
@@ -375,7 +399,7 @@ export default async function (ctx) {
           { type: "text", text: dateStr, font: { size: 12 }, textColor: THEME.text }
         ]
       },
-      // 四格油价
+      // 四格
       {
         type: "stack",
         direction: "row",
