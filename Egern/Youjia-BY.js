@@ -333,13 +333,13 @@ export default async function (ctx) {
       {
         type: "text",
         text: `下轮调价：`,
-        font: { size: 12, weight: "bold" },
+        font: { size: 11, weight: "bold" },
         textColor: THEME.text
       },
       {
         type: "text",
         text: `${uiDateStr}（${countdownStr}）`,
-        font: { size: 12, weight: "bold" },
+        font: { size: 11, weight: "bold" },
         textColor: "#FF9500"
       },
 
@@ -350,13 +350,13 @@ export default async function (ctx) {
             {
               type: "text",
               text: `预估：`,
-              font: { size: 12, weight: "bold" },
+              font: { size: 11, weight: "bold" },
               textColor: THEME.text
             },
             {
               type: "text",
               text: trendInfo.text,
-              font: { size: 12, weight: "bold" },
+              font: { size: 11, weight: "bold" },
               textColor: trendInfo.color
             }
           ]
