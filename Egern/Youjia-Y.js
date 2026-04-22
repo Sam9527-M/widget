@@ -119,7 +119,6 @@ export default async function (ctx) {
   };
 
   const PROVINCE_CODE = PROVINCE_PINYIN[PROVINCE] || PROVINCE;
-
   async function fetchWebPage(provinceCode) {
     const url = `http://m.qiyoujiage.com/${provinceCode}.shtml`;
     try {
@@ -142,9 +141,23 @@ export default async function (ctx) {
     const m = html.match(reg);
     if (!m) return null;
 
-    const year = m[3] ? Number(m[3]) : now.getFullYear();
     const month = Number(m[4]) - 1;
     const day = Number(m[5]);
+
+    let year;
+    if (m[3]) {
+      // 网页明确给出了年份，直接用
+      year = Number(m[3]);
+    } else {
+      // 没有年份，先尝试今年
+      year = now.getFullYear();
+      const date = new Date(year, month, day);
+      date.setHours(24, 0, 0, 0);
+      // 如果算出来的日期已经过了，说明是明年
+      if (date <= now) {
+        year = year + 1;
+      }
+    }
 
     const date = new Date(year, month, day);
     date.setHours(24, 0, 0, 0);
@@ -185,6 +198,7 @@ export default async function (ctx) {
 
     return { text: `${arrow} ${amount} 元/升`, color };
   }
+
   const CACHE_KEY = `oil_cache_${PROVINCE}`;
   const cache = await ctx.storage.get(CACHE_KEY);
   const nowTime = Date.now();
@@ -219,7 +233,6 @@ export default async function (ctx) {
       if (cache) oil = cache.data;
     }
   }
-
   const html = await fetchWebPage(PROVINCE_CODE);
 
   let nextAdjustWeb = null;
@@ -306,7 +319,6 @@ export default async function (ctx) {
     const leftHours = Math.floor((diff / (1000 * 60 * 60)) % 24);
     const countdownStr = `${leftDays}天${leftHours}小时`;
 
-    // ⭐ 关键：同一行 + spacer → 趋势永远在最右
     adjustUI = {
   type: "stack",
   direction: "row",
@@ -315,13 +327,13 @@ export default async function (ctx) {
   children: [
     {
       type: "text",
-      text: `下轮调价：`,          // ⭐ 保持黑色
+      text: `下轮调价：`,
       font: { size: 11, weight: "bold" },
       textColor: THEME.text
     },
     {
       type: "text",
-      text: `${uiDateStr}（${countdownStr}）`,   // ⭐ 橙色
+      text: `${uiDateStr}（${countdownStr}）`,
       font: { size: 11, weight: "bold" },
       textColor: "#FF9500"
     },
@@ -336,13 +348,13 @@ export default async function (ctx) {
     children: [
       {
         type: "text",
-        text: "预估：",                 // ⭐ 保持黑色
+        text: "预估：",
         font: { size: 11, weight: "bold" },
         textColor: THEME.text
       },
       {
         type: "text",
-        text: trendInfo.text,          // ⭐ 箭头 + 数值保持原来的颜色
+        text: trendInfo.text,
         font: { size: 11, weight: "bold" },
         textColor: trendInfo.color
       }
@@ -352,7 +364,6 @@ export default async function (ctx) {
   ]
 };
   }
-
   const PRICE = {
     "92": oil?.t92 ? Number(oil.t92) : null,
     "95": oil?.t95 ? Number(oil.t95) : null,
