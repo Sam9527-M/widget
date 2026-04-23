@@ -1,5 +1,5 @@
 /*
- * 名称: 📅 日历 / 老黄历 (完整干支 + 完美冲煞终极修复版)
+ * 名称: 📅 日历 / 老黄历 
  * ==========================================
  */
 export default async function(ctx) {
@@ -26,7 +26,6 @@ export default async function(ctx) {
   const WEEK = "日一二三四五六"[now.getDay()];
   const P = n => n < 10 ? `0${n}` : n;
 
-  // ✨ 获取当前是第几周
   const getWeek = (date) => {
     const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
     const dayNum = d.getUTCDay() || 7;
@@ -36,14 +35,11 @@ export default async function(ctx) {
   };
   const weekNum = getWeek(now);
   
-  // ✨ 获取刷新时间与时辰几刻
   const refreshTime = `${P(now.getHours())}:${P(now.getMinutes())}`;
   
   const shichenIndex = Math.floor((now.getHours() + 1) % 24 / 2);
   const shichenName = ["子","丑","寅","卯","辰","巳","午","未","申","酉","戌","亥"][shichenIndex];
-  // 当前处于该时辰的第几分钟 (0-119)
   const minsIntoShichen = (now.getHours() % 2 === 0 ? 60 : 0) + now.getMinutes();
-  // 15分钟为一刻
   const keName = ["初","一","二","三","四","五","六","七"][Math.floor(minsIntoShichen / 15)] + "刻";
   const shichenStr = `${shichenName}时${keName}`;
 
@@ -124,12 +120,10 @@ export default async function(ctx) {
   const rawYi = getVal("yi", "Yi", "suit").replace(/\./g, " ").trim();
   const rawJi = getVal("ji", "Ji", "avoid").replace(/\./g, " ").trim();
 
-  // ✨ 干支基础数据
   const stems = "甲乙丙丁戊己庚辛壬癸";
   const branches = "子丑寅卯辰巳午未申酉戌亥";
   const animals = "鼠牛虎兔龙蛇马羊猴鸡狗猪";
 
-  // ✨ 精准推算日柱：以 2024-01-01 (甲子日) 为基准
   let dOffset = Math.floor((Date.UTC(Y, M-1, D) - Date.UTC(2024, 0, 1)) / 86400000) % 60;
   if (dOffset < 0) dOffset += 60;
   
@@ -137,7 +131,6 @@ export default async function(ctx) {
   const rawGzDate = getVal("gzDate", "gz_day") || (stems[dOffset % 10] + branches[dOffset % 12]);
   const ganzhiFull = rawGzMonth ? `${obj.gz}(${obj.ani})年 ${rawGzMonth}月 ${rawGzDate}日` : `${obj.gz}(${obj.ani})年 ${rawGzDate}日`;
 
-  // ✨ 核心修复点：六十甲子中，“天克地冲”的干支柱必定是当前日柱倒推 6 位 (等效于 +54)
   const cIndex = (dOffset + 54) % 60; 
   const dZhi = dOffset % 12;
   const chongshaInfo = `冲${animals[(dZhi + 6) % 12]}(${stems[cIndex % 10]}${branches[cIndex % 12]})煞${["南","东","北","西"][dZhi % 4]}`;
@@ -176,9 +169,7 @@ export default async function(ctx) {
   let finalHolidayText = upcomingHolidays.join(" · ");
   if (todayHoliday) finalHolidayText = `今日${todayHoliday} | 距 ${finalHolidayText}`;
 
-  // 增加前置空格，使其大约在标题年份内容正下方开始显示
   const indentedGanzhi = "       " + (obj.term ? `${ganzhiFull} · ${obj.term}` : ganzhiFull);
-
   return {
     type: 'widget', padding: [10, 12], url: 'calshow://', backgroundColor: C.bg, 
     children: [
@@ -188,11 +179,11 @@ export default async function(ctx) {
           { type: 'image', src: 'sf-symbol:calendar.circle.fill', color: C.main, width: 14, height: 14 }, 
           { type: 'text', text: `${Y}年${M}月 第${weekNum}周`, font: { size: 13, weight: 'heavy' }, textColor: C.main, minimumScaleFactor: 0.8 },
           { type: 'spacer' },
-          { type: 'image', src: 'sf-symbol:clock.fill', color: '#000000', width: 11, height: 11 },
-          { type: 'text', text: refreshTime, font: { size: 11, weight: 'regular' }, textColor: '#000000', minimumScaleFactor: 0.8 }
+          { type: 'image', src: 'sf-symbol:clock.fill', color: C.sub, width: 11, height: 11 },
+          { type: 'text', text: refreshTime, font: { size: 11, weight: 'regular' }, textColor: C.sub, minimumScaleFactor: 0.8 }
         ]
       },
-      { type: 'spacer', length: 2 }, // ✨ 减小了标题和干支行之间的行距
+      { type: 'spacer', length: 2 }, 
       {
         type: 'stack', direction: 'row', alignItems: 'center',
         children: [
