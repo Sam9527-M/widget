@@ -184,7 +184,7 @@ export default async function (ctx) {
           {
             type: "text",
             text: "大宗商品行情",
-            font: { size: 14, weight: "semibold" },
+            font: { size: 15, weight: "semibold" },
             textColor: THEME.text
           },
           { type: "spacer" },
