@@ -352,8 +352,8 @@ export default async function (ctx) {
   };
 
   const NAME_CN = {
-    AU9999: "黄金",
-    AG9999: "白银",
+    AU9999: "黄金9999",
+    AG9999: "白银9999",
     XAUUSD: "伦敦金",
     XAGUSD: "伦敦银",
     PT:     "铂金",
