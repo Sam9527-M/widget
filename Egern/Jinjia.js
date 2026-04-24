@@ -143,14 +143,14 @@ export default async function (ctx) {
       {
         type: "image",
         src: "sf-symbol:clock.arrow.circlepath",
-        width: 12,
-        height: 12,
+        width: 11,
+        height: 11,
         color: theme.text   // ✅ 修复：原 #000000 暗色模式不可见
       },
       {
         type: "text",
         text: timeStr,
-        font: { size: 12, weight: "regular" },
+        font: { size: 11, weight: "regular" },
         textColor: theme.text   // ✅ 修复：原 #000000 暗色模式不可见
       }
     ]
