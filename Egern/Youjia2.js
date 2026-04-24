@@ -392,11 +392,11 @@ export default async function (ctx) {
         alignItems: "center",
         gap: 4,
         children: [
-          { type: "image", src: "sf-symbol:fuelpump.fill", width: 14, height: 14, color: THEME.text },
-          { type: "text", text: `${CITY}今日油价`, font: { size: 14, weight: "semibold" }, textColor: THEME.text },
+          { type: "image", src: "sf-symbol:fuelpump.fill", width: 15, height: 15, color: THEME.text },
+          { type: "text", text: `${CITY}今日油价`, font: { size: 15, weight: "semibold" }, textColor: THEME.text },
           { type: "spacer" },
-          { type: "image", src: "sf-symbol:clock.arrow.circlepath", width: 12, height: 12, color: THEME.text },
-          { type: "text", text: dateStr, font: { size: 12 }, textColor: THEME.text }
+          { type: "image", src: "sf-symbol:clock.arrow.circlepath", width: 11, height: 11, color: THEME.text },
+          { type: "text", text: dateStr, font: { size: 11 }, textColor: THEME.text }
         ]
       },
       // 四格
