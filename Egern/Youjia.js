@@ -391,8 +391,8 @@ export default async function (ctx) {
               {
                 type: "image",
                 src: "sf-symbol:clock.arrow.circlepath",
-                width: 12,
-                height: 12,
+                width: 11,
+                height: 11,
                 color: COLORS.clock
               },
               {
