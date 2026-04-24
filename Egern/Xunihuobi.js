@@ -223,22 +223,22 @@ export default async function (ctx) {
           {
             type: "image",
             src: "sf-symbol:bitcoinsign.circle.fill",
-            width: 13,
-            height: 13,
+            width: 15,
+            height: 15,
             color: THEME.text
           },
           {
             type: "text",
             text: "虚拟货币行情",
-            font: { size: 14, weight: "semibold" },
+            font: { size: 15, weight: "semibold" },
             textColor: THEME.text
           },
           { type: "spacer" },
           {
             type: "image",
             src: "sf-symbol:clock.arrow.circlepath",
-            width: 12,
-            height: 12,
+            width: 11,
+            height: 11,
             color: THEME.text
           },
           {
