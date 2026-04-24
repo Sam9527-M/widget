@@ -416,8 +416,8 @@ export default async function (ctx) {
           {
             type: "image",
             src: "sf-symbol:chart.line.uptrend.xyaxis.circle.fill",
-            width: 13, 
-            height: 13,
+            width: 15, 
+            height: 15,
             color: THEME.text
           },
           {
