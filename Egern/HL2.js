@@ -187,9 +187,9 @@ export default async function(ctx) {
       {
         type: 'stack', direction: 'row', alignItems: 'center',
         children: [
-          { type: 'text', text: indentedGanzhi, font: { size: 11, weight: 'bold' }, textColor: C.gold, minimumScaleFactor: 0.6 },
+          { type: 'text', text: indentedGanzhi, font: { size: 12, weight: 'bold' }, textColor: C.gold, minimumScaleFactor: 0.6 },
           { type: 'spacer' },
-          { type: 'text', text: shichenStr, font: { size: 10, weight: 'bold' }, textColor: C.gold, minimumScaleFactor: 0.8 }
+          { type: 'text', text: shichenStr, font: { size: 11, weight: 'bold' }, textColor: C.gold, minimumScaleFactor: 0.8 }
         ]
       },
       { type: 'spacer', length: 4 }, 
