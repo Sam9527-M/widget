@@ -1,8 +1,7 @@
 /**
  * ⛽ 全国实时油价小组件
  * 数据源：http://m.qiyoujiage.com/
- * 
- * 📚 使用教程
+ * * 📚 使用教程
  * ═══════════════════════════════════════════════════
  *
  * 1️⃣ 环境变量配置
@@ -398,7 +397,7 @@ export default async function (ctx) {
               {
                 type: "text",
                 text: ` ${dateStr} ${timeStr}`,
-                font: { size: "caption2", weight: "bold" },
+                font: { size: "caption2" },
                 textColor: COLORS.header
               }
             ]
@@ -493,4 +492,3 @@ export default async function (ctx) {
     ]
   };
 }
-
