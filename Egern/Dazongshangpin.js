@@ -177,8 +177,8 @@ export default async function (ctx) {
           {
             type: "image",
             src: "sf-symbol:chart.line.uptrend.xyaxis.circle.fill",
-            width: 13,
-            height: 13,
+            width: 15,
+            height: 15,
             color: THEME.text
           },
           {
@@ -191,14 +191,14 @@ export default async function (ctx) {
           {
             type: "image",
             src: "sf-symbol:clock.arrow.circlepath",
-            width: 12,
-            height: 12,
+            width: 11,
+            height: 11,
             color: THEME.text
           },
           {
             type: "text",
             text: dateStr,
-            font: { size: 12 },
+            font: { size: 11 },
             textColor: THEME.text
           }
         ]
