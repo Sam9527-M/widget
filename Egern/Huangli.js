@@ -340,7 +340,7 @@ export default async function(ctx) {
         alignItems: "center",
         gap: 6,
         children: [
-          { type: "image", src: "sf-symbol:calendar", color: C.main, width: 16, height: 16 },
+          { type: "image", src: "sf-symbol:calendar", color: C.main, width: 15, height: 15 },
           {
             type: "text",
             text: `${Y}年${M}月${D}日 星期${WEEK} · 第${weekNumber}周`,
