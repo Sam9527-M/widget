@@ -372,8 +372,8 @@ export default async function (ctx) {
           {
             type: "image",
             src: "sf-symbol:fuelpump.circle.fill",
-            width: 16,
-            height: 16,
+            width: 15,
+            height: 15,
             color: COLORS.header
           },
           {
