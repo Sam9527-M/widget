@@ -355,11 +355,11 @@ export default async function(ctx) {
             alignItems: "center",
             gap: 3,
             children: [
-              { type: "image", src: "sf-symbol:clock.arrow.circlepath", color: C.main, width: 12, height: 12 },
+              { type: "image", src: "sf-symbol:clock.arrow.circlepath", color: C.main, width: 11, height: 11 },
               {
                 type: "text",
                 text: `${P(now.getHours())}:${P(now.getMinutes())}:${P(now.getSeconds())}`,
-                font: { size: 12, weight: "medium" },
+                font: { size: 11, weight: "medium" },
                 textColor: C.main
               }
             ]
