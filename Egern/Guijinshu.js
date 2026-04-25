@@ -331,8 +331,8 @@ export default async function (ctx) {
     XAGUSD: "伦敦银",
     PT:     "铂金",
     PD:     "钯金",
-    AU_TD:  "黄金T+D",
-    AG_TD:  "白银T+D",
+    AU_TD:  "黄金TD",
+    AG_TD:  "白银TD",
     BRENT:  "布伦特原油",
     WTI:    "美国原油"
   };
@@ -378,7 +378,7 @@ export default async function (ctx) {
         {
           type: "text",
           text: display,
-          font: { size: 13, weight: "semibold" }, 
+          font: { size: 12, weight: "semibold" }, 
           textColor: THEME.text
         }
       ]
