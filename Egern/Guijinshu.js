@@ -378,7 +378,7 @@ export default async function (ctx) {
         {
           type: "text",
           text: display,
-          font: { size: 12, weight: "semibold" }, 
+          font: { size: 13, weight: "semibold" }, 
           textColor: THEME.text
         }
       ]
