@@ -16,6 +16,7 @@ export default async function (ctx) {
   // 刷新间隔：30 分钟
   const refreshAfter = new Date(Date.now() + 30 * 60 * 1000).toISOString();
 
+  // 增加了多种常用货币的图标配置（包含越南盾和伊朗里亚尔）
   const ICON_MAP = {
     CNY: "yensign.circle.fill",
     USD: "dollarsign.circle.fill",
@@ -26,10 +27,22 @@ export default async function (ctx) {
     CHF: "francsign.circle.fill",
     HKD: "dollarsign.circle.fill",
     SGD: "dollarsign.circle.fill",
-    KRW: "wonsign.circle.fill"
+    KRW: "wonsign.circle.fill",
+    AUD: "dollarsign.circle.fill",
+    NZD: "dollarsign.circle.fill",
+    THB: "bahtsign.circle.fill",
+    RUB: "rublesign.circle.fill",
+    TWD: "dollarsign.circle.fill",
+    MOP: "dollarsign.circle.fill",
+    MYR: "dollarsign.circle.fill",
+    PHP: "pesosign.circle.fill",
+    IDR: "rupiahsign.circle.fill",
+    INR: "indianrupeesign.circle.fill",
+    VND: "dongsign.circle.fill", // 越南盾
+    IRR: "banknote.fill"         // 伊朗里亚尔 (使用纸币通用图标作为 fallback)
   };
 
-  // 修复：图标颜色补充 dark 变体
+  // 增加了对应图标颜色的 dark / light 配置
   const ICON_COLOR = {
     CNY: { light: "#D60000", dark: "#FF4444" },
     USD: { light: "#4CAF50", dark: "#66BB6A" },
@@ -40,9 +53,22 @@ export default async function (ctx) {
     CHF: { light: "#708090", dark: "#90A4AE" },
     HKD: { light: "#B22222", dark: "#EF5350" },
     SGD: { light: "#2E8B57", dark: "#66BB6A" },
-    KRW: { light: "#4169E1", dark: "#7986CB" }
+    KRW: { light: "#4169E1", dark: "#7986CB" },
+    AUD: { light: "#008B8B", dark: "#4DB6AC" },
+    NZD: { light: "#556B2F", dark: "#AED581" },
+    THB: { light: "#FFA500", dark: "#FFCC80" },
+    RUB: { light: "#8B0000", dark: "#E57373" },
+    TWD: { light: "#4682B4", dark: "#81D4FA" },
+    MOP: { light: "#9ACD32", dark: "#DCE775" },
+    MYR: { light: "#DAA520", dark: "#FFD54F" },
+    PHP: { light: "#0000CD", dark: "#5C6BC0" },
+    IDR: { light: "#CD5C5C", dark: "#EF5350" },
+    INR: { light: "#FF8C00", dark: "#FFB74D" },
+    VND: { light: "#00BCD4", dark: "#4DD0E1" },
+    IRR: { light: "#009688", dark: "#4DB6AC" }
   };
 
+  // 增加了对应中文名称映射
   const NAME_CN = {
     CNY: "在岸人民币",
     USD: "美元",
@@ -53,10 +79,29 @@ export default async function (ctx) {
     CHF: "瑞郎",
     HKD: "港币",
     SGD: "新加坡元",
-    KRW: "韩元"
+    KRW: "韩元",
+    AUD: "澳元",
+    NZD: "新西兰元",
+    THB: "泰铢",
+    RUB: "俄罗斯卢布",
+    TWD: "新台币",
+    MOP: "澳门元",
+    MYR: "马来西亚林吉特",
+    PHP: "菲律宾比索",
+    IDR: "印尼盾",
+    INR: "印度卢比",
+    VND: "越南盾",
+    IRR: "伊朗里亚尔"
   };
 
-  const currencies = ["CNY", "USD", "EUR", "JPY", "GBP", "CAD", "CHF", "HKD", "SGD", "KRW"];
+  // 默认显示的货币
+  let displayCurrencies = ["CNY", "USD", "EUR", "JPY", "GBP", "CAD", "CHF", "HKD", "SGD", "KRW"];
+
+  // 读取环境变量配置“币种”：允许逗号或空格分割，如 "CNY, USD, AUD, VND, IRR"
+  const envStr = ctx.env?.["币种"];
+  if (envStr) {
+    displayCurrencies = envStr.split(/[,，\s]+/).filter(c => c).map(c => c.toUpperCase());
+  }
 
   // ── 读缓存 ──────────────────────────────────────────────
   let cachedRates = null;
@@ -85,13 +130,12 @@ export default async function (ctx) {
     const usdToCnh = fx.rates.CNH;
     if (!usdToCnh) throw new Error("CNH汇率缺失");
 
-    currencies.forEach((c) => {
+    displayCurrencies.forEach((c) => {
       const rate = fx.rates[c];
       if (!rate) {
         rateMap[c] = null;
       } else {
-        // 修复：统一计算"1单位该货币 = 多少CNH"
-        // usdToCnh / rate = (CNH/USD) / (c/USD) = CNH/c ✓
+        // 计算"1单位该货币 = 多少CNH"
         rateMap[c] = usdToCnh / rate;
       }
     });
@@ -117,49 +161,56 @@ export default async function (ctx) {
     `${String(now.getSeconds()).padStart(2, "0")}`;
 
   // ── 货币卡片 ────────────────────────────────────────────
-  const item = (code) => ({
-    type: "stack",
-    direction: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    flex: 1,
-    padding: [4, 0, 4, 0],
-    children: [
-      {
-        type: "text",
-        text: NAME_CN[code],
-        font: { size: 12, weight: "semibold" },
-        textColor: THEME.text
-      },
-      { type: "spacer", length: 2 },
-      {
-        type: "stack",
-        height: 26,
-        alignItems: "center",
-        children: [
-          {
-            type: "image",
-            src: "sf-symbol:" + ICON_MAP[code],
-            width: 22,
-            height: 22,
-            color: ICON_COLOR[code]   // 已补充 dark 变体，直接传对象
-          }
-        ]
-      },
-      { type: "spacer", length: 3 },
-      {
-        type: "text",
-        text: rateMap[code] != null ? `¥${format(rateMap[code])}` : "-",
-        font: { size: 13, weight: "semibold" },
-        textColor: THEME.text
-      }
-    ]
-  });
+  const item = (code) => {
+    // 增加 fallback 兜底机制以防填错未知币种
+    const iconName = ICON_MAP[code] || "dollarsign.circle.fill";
+    const iconColor = ICON_COLOR[code] || { light: "#888888", dark: "#AAAAAA" };
+    const displayName = NAME_CN[code] || code;
 
-  // 修复：动态分组，不再硬编码 slice(0,5)
-  const half = Math.ceil(currencies.length / 2);
-  const row1 = currencies.slice(0, half);
-  const row2 = currencies.slice(half);
+    return {
+      type: "stack",
+      direction: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      flex: 1,
+      padding: [4, 0, 4, 0],
+      children: [
+        {
+          type: "text",
+          text: displayName,
+          font: { size: 12, weight: "semibold" },
+          textColor: THEME.text
+        },
+        { type: "spacer", length: 2 },
+        {
+          type: "stack",
+          height: 26,
+          alignItems: "center",
+          children: [
+            {
+              type: "image",
+              src: "sf-symbol:" + iconName,
+              width: 22,
+              height: 22,
+              color: iconColor
+            }
+          ]
+        },
+        { type: "spacer", length: 3 },
+        {
+          type: "text",
+          text: rateMap[code] != null ? `¥${format(rateMap[code])}` : "-",
+          font: { size: 13, weight: "semibold" },
+          textColor: THEME.text
+        }
+      ]
+    };
+  };
+
+  // 动态计算分组，适配任何数量的配置币种
+  const half = Math.ceil(displayCurrencies.length / 2);
+  const row1 = displayCurrencies.slice(0, half);
+  const row2 = displayCurrencies.slice(half);
 
   // ── 渲染 ────────────────────────────────────────────────
   return {
@@ -191,7 +242,7 @@ export default async function (ctx) {
             textColor: THEME.text
           },
           { type: "spacer" },
-          // 修复：网络失败时显示错误提示
+          // 网络失败时显示错误提示
           ...(fetchError ? [
             {
               type: "text",
@@ -226,14 +277,14 @@ export default async function (ctx) {
         children: row1.map(item)
       },
 
-      // 第二行货币
-      {
+      // 第二行货币 (如果环境变量中只配了一行数量的货币，第二行将会自动隐藏)
+      ...(row2.length > 0 ? [{
         type: "stack",
         direction: "row",
         justifyContent: "space-between",
         gap: 6,
         children: row2.map(item)
-      }
+      }] : [])
 
     ]
   };
