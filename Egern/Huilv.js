@@ -261,7 +261,7 @@ export default async function (ctx) {
             {
               type: "text",
               text: dateStr,
-              font: { size: 11 },
+              font: { size: 12 },
               textColor: THEME.text
             }
           ])
