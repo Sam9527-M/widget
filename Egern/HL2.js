@@ -180,7 +180,7 @@ export default async function(ctx) {
           { type: 'text', text: `${Y}年${M}月 第${weekNum}周`, font: { size: 15, weight: 'heavy' }, textColor: C.main, minimumScaleFactor: 0.8 },
           { type: 'spacer' },
           { type: 'image', src: 'sf-symbol:clock.fill', color: C.sub, width: 11, height: 11 },
-          { type: 'text', text: refreshTime, font: { size: 11, weight: 'regular' }, textColor: C.sub, minimumScaleFactor: 0.8 }
+          { type: 'text', text: refreshTime, font: { size: 12, weight: 'regular' }, textColor: C.sub, minimumScaleFactor: 0.8 }
         ]
       },
       { type: 'spacer', length: 2 }, 
