@@ -4,7 +4,7 @@
  * 涨跌幅：Yahoo Finance
  * 原油价格：Yahoo Finance（BZ=F, CL=F）
  * 汇率：open.er-api.com（USD→CNY）
- * UI：图标精致风 + 自动隐藏涨跌幅
+ * 
  */
 
 export default async function (ctx) {
@@ -150,7 +150,7 @@ export default async function (ctx) {
       {
         type: "text",
         text: timeStr,
-        font: { size: 11, weight: "regular" },
+        font: { size: 12, weight: "regular" },
         textColor: theme.text   // ✅ 修复：原 #000000 暗色模式不可见
       }
     ]
