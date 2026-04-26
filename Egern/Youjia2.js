@@ -395,7 +395,7 @@ export default async function (ctx) {
           { type: "image", src: "sf-symbol:fuelpump.fill", width: 15, height: 15, color: THEME.text },
           { type: "text", text: `${CITY}今日油价`, font: { size: 15, weight: "semibold" }, textColor: THEME.text },
           { type: "spacer" },
-          { type: "image", src: "sf-symbol:clock.arrow.circlepath", width: 11, height: 11, color: THEME.text },
+          { type: "image", src: "sf-symbol:clock.arrow.circlepath", width: 10, height: 10, color: THEME.text },
           { type: "text", text: dateStr, font: { size: 11 }, textColor: THEME.text }
         ]
       },
