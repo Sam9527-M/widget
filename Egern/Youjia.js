@@ -390,14 +390,14 @@ export default async function (ctx) {
               {
                 type: "image",
                 src: "sf-symbol:clock.arrow.circlepath",
-                width: 11,
-                height: 11,
+                width: 10,
+                height: 10,
                 color: COLORS.clock
               },
               {
                 type: "text",
                 text: ` ${dateStr} ${timeStr}`,
-                font: { size: "caption2" },
+                font: { size: 11 },
                 textColor: COLORS.header
               }
             ]
