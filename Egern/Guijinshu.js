@@ -1,5 +1,5 @@
 /**
- * 修复点：
+ * 
  * 1. 东财 f2 直接就是价格，不做除法换算
  * 2. 东财 code 映射：AUTD->AU_TD, AGTD->AG_TD
  *
@@ -445,7 +445,7 @@ export default async function (ctx) {
             {
               type: "text",
               text: dateStr,
-              font: { size: 11 },
+              font: { size: 12 },
               textColor: THEME.text
             }
           ])
