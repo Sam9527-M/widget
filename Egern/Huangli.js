@@ -359,7 +359,7 @@ export default async function(ctx) {
               {
                 type: "text",
                 text: `${P(now.getHours())}:${P(now.getMinutes())}:${P(now.getSeconds())}`,
-                font: { size: 11, weight: "medium" },
+                font: { size: 12, weight: "medium" },
                 textColor: C.main
               }
             ]
