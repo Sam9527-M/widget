@@ -305,9 +305,9 @@ export default async function (ctx) {
   // ⭐ 最终调价日期（网页优先，日历兜底，保留原有顺序）
   const nextAdjust = nextAdjustWeb || getNextAdjustDate();
 
-  // ⭐ 倒计时计算
+  // ⭐ 倒计时计算，并将日期改为 00-00 格式
   const uiDate = new Date(nextAdjust.getTime());
-  const uiDateStr = `${uiDate.getMonth() + 1}月${uiDate.getDate()}日`;
+  const uiDateStr = `${String(uiDate.getMonth() + 1).padStart(2, '0')}-${String(uiDate.getDate()).padStart(2, '0')}`;
 
   const diff = nextAdjust - now;
   const leftDays = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -336,20 +336,20 @@ export default async function (ctx) {
 
   const format = (v) => (v !== null && v !== undefined ? Number(v).toFixed(2) : "-");
 
-  // ⭐ 底部调价信息行
+  // ⭐ 底部调价信息行（字体大小改为11）
   const adjustUI = {
     type: "stack",
     direction: "row",
     alignItems: "center",
     padding: [4, 0, 0, 2],
     children: [
-      { type: "text", text: "下轮调价：", font: { size: 12, weight: "bold" }, textColor: THEME.text },
-      { type: "text", text: `${uiDateStr}（${countdownStr}）`, font: { size: 12, weight: "bold" }, textColor: "#FF9500" },
+      { type: "text", text: "下轮调价：", font: { size: 11, weight: "bold" }, textColor: THEME.text },
+      { type: "text", text: `${uiDateStr}（${countdownStr}）`, font: { size: 11, weight: "bold" }, textColor: "#FF9500" },
       { type: "spacer" },
       ...(trendInfo
         ? [
-            { type: "text", text: "预估：", font: { size: 12, weight: "bold" }, textColor: THEME.text },
-            { type: "text", text: trendInfo.text, font: { size: 12, weight: "bold" }, textColor: trendInfo.color }
+            { type: "text", text: "预估：", font: { size: 11, weight: "bold" }, textColor: THEME.text },
+            { type: "text", text: trendInfo.text, font: { size: 11, weight: "bold" }, textColor: trendInfo.color }
           ]
         : [])
     ]
