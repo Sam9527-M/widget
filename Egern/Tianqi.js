@@ -5,11 +5,6 @@
  * - CITY：城市/区县名称
  * - time：刷新间隔（分钟），默认 30
  *
- * 修复记录：
- * 1. aqi.medium / aqi.low SF Symbol 替换为有效符号
- * 2. formatCurrentTime() 固定使用 Asia/Shanghai 时区
- * 3. renderLarge 中冗余的 slice(0,3) 已移除
- * 4. renderSmall 中 createIconWithSunTimes 改为不含日出日落的轻量版，避免布局挤压
  */
 
 const DEFAULT_CITY = '南宁';
@@ -18,10 +13,10 @@ const DEFAULT_TIME = 30;
 const Colors = {
   bg: { light: '#FFFFFF', dark: '#1C1C1E' },
   cardBg: { light: '#F2F2F7', dark: '#2C2C2E' },
-  textPrimary: { light: '#000000', dark: '#FFFFFF' },
-  redWarning: '#FF3B30',   // 定位图标与 PM2.5 专属红色
-  orangeWeather: '#FF9500', // 天气状况专属橙色
-  greenTemp: '#34C759'      // 主温度专属绿色
+  textPrimary: { light: '#34495E', dark: '#FFFFFF' }, // 深色模式字体已改为纯白 #FFFFFF
+  redWarning: '#FF6B6B',    // 珊瑚红：定位图标与 PM2.5 专属强调色
+  orangeWeather: '#F59E0B', // 琥珀橙：天气状况专属颜色
+  greenTemp: '#50C878'      // 薄荷绿：主温度专属颜色
 };
 
 export default async function(ctx) {
@@ -118,7 +113,6 @@ async function fetchWeather(ctx, cityName) {
       windDir: `${getWindDir(current.wind_direction_10m ?? 0)} ${getWindScale(current.wind_speed_10m ?? 0)}级`,
       windLevel: `${(current.wind_speed_10m ?? 0).toFixed(1)} 公里/时`,
     },
-    // FIX 3: 只在 fetchWeather 中 slice，renderLarge 无需再次 slice
     forecast: forecast.slice(0, 3),
   };
 }
@@ -154,7 +148,6 @@ async function getCoordinates(ctx, cityName) {
   throw new Error(`无法定位: ${cityName}`);
 }
 
-// FIX 4: small 尺寸使用轻量版图标，不含日出日落，避免布局挤压
 function renderSmall(weather, refreshAfter) {
   const theme = getTheme(weather.today.weather);
 
@@ -185,7 +178,6 @@ function renderSmall(weather, refreshAfter) {
             alignItems: 'center',
             gap: 8,
             children: [
-              // 轻量版：仅显示天气图标，不含日出日落
               {
                 type: 'image',
                 src: `sf-symbol:${theme.icon}`,
@@ -279,20 +271,58 @@ function renderMedium(weather, refreshAfter) {
                     color: theme.iconColor,
                   },
                   {
-                    type: 'text',
-                    text: `日出 ${weather.today.sunrise}`,
-                    font: { size: 12, weight: 'bold' },
-                    textColor: Colors.textPrimary,
-                    maxLines: 1,
-                    minScale: 0.8,
-                  },
-                  {
-                    type: 'text',
-                    text: `日落 ${weather.today.sunset}`,
-                    font: { size: 12, weight: 'bold' },
-                    textColor: Colors.textPrimary,
-                    maxLines: 1,
-                    minScale: 0.8,
+                    type: 'stack',
+                    direction: 'column',
+                    alignItems: 'start',
+                    gap: 2,
+                    children: [
+                      {
+                        type: 'stack',
+                        direction: 'row',
+                        alignItems: 'center',
+                        gap: 4,
+                        children: [
+                          {
+                            type: 'image',
+                            src: 'sf-symbol:sunrise.fill',
+                            width: 12,
+                            height: 12,
+                            color: '#FF9500',
+                          },
+                          {
+                            type: 'text',
+                            text: `日出 ${weather.today.sunrise}`,
+                            font: { size: 12, weight: 'bold' },
+                            textColor: Colors.textPrimary,
+                            maxLines: 1,
+                            minScale: 0.8,
+                          }
+                        ]
+                      },
+                      {
+                        type: 'stack',
+                        direction: 'row',
+                        alignItems: 'center',
+                        gap: 4,
+                        children: [
+                          {
+                            type: 'image',
+                            src: 'sf-symbol:sunset.fill',
+                            width: 12,
+                            height: 12,
+                            color: '#AF52DE',
+                          },
+                          {
+                            type: 'text',
+                            text: `日落 ${weather.today.sunset}`,
+                            font: { size: 12, weight: 'bold' },
+                            textColor: Colors.textPrimary,
+                            maxLines: 1,
+                            minScale: 0.8,
+                          }
+                        ]
+                      }
+                    ]
                   }
                 ]
               },
@@ -329,7 +359,7 @@ function renderMedium(weather, refreshAfter) {
               {
                 type: 'stack',
                 direction: 'column',
-                alignItems: 'end',
+                alignItems: 'center', // FIX 7: 改为 center，完美对称左侧日出日落布局
                 gap: 4,
                 width: 85,
                 children: [
@@ -358,7 +388,6 @@ function renderMedium(weather, refreshAfter) {
 
 function renderLarge(weather, refreshAfter) {
   const theme = getTheme(weather.today.weather);
-  // FIX 3: 直接使用 weather.forecast，fetchWeather 已 slice(0,3)
   const forecastItems = weather.forecast;
 
   return {
@@ -432,7 +461,6 @@ function renderLarge(weather, refreshAfter) {
         children: [
           createInfoCard('sunrise.fill', '日出', weather.today.sunrise, '#FF9500'),
           createInfoCard('sunset.fill', '日落', weather.today.sunset, '#FF2D55'),
-          // FIX 1: aqi.medium → lungs.fill（PM2.5），aqi.low → wind（PM10）
           createInfoCard('lungs.fill', 'PM2.5', weather.pm25, '#34C759', Colors.redWarning),
           createInfoCard('wind', 'PM10', weather.pm10, '#32ADE6'),
         ],
@@ -618,7 +646,6 @@ function renderError(message) {
   };
 }
 
-// medium/large 尺寸专用：含日出日落的图标组合
 function createIconWithSunTimes(theme, weather, iconSize) {
   return {
     type: 'stack',
@@ -634,20 +661,58 @@ function createIconWithSunTimes(theme, weather, iconSize) {
         color: theme.iconColor,
       },
       {
-        type: 'text',
-        text: `日出 ${weather.today.sunrise}`,
-        font: { size: 12, weight: 'bold' },
-        textColor: Colors.textPrimary,
-        maxLines: 1,
-        minScale: 0.8,
-      },
-      {
-        type: 'text',
-        text: `日落 ${weather.today.sunset}`,
-        font: { size: 12, weight: 'bold' },
-        textColor: Colors.textPrimary,
-        maxLines: 1,
-        minScale: 0.8,
+        type: 'stack',
+        direction: 'column',
+        alignItems: 'start',
+        gap: 2,
+        children: [
+          {
+            type: 'stack',
+            direction: 'row',
+            alignItems: 'center',
+            gap: 4,
+            children: [
+              {
+                type: 'image',
+                src: 'sf-symbol:sunrise.fill',
+                width: 12,
+                height: 12,
+                color: '#FF9500',
+              },
+              {
+                type: 'text',
+                text: `日出 ${weather.today.sunrise}`,
+                font: { size: 12, weight: 'bold' },
+                textColor: Colors.textPrimary,
+                maxLines: 1,
+                minScale: 0.8,
+              }
+            ]
+          },
+          {
+            type: 'stack',
+            direction: 'row',
+            alignItems: 'center',
+            gap: 4,
+            children: [
+              {
+                type: 'image',
+                src: 'sf-symbol:sunset.fill',
+                width: 12,
+                height: 12,
+                color: '#AF52DE',
+              },
+              {
+                type: 'text',
+                text: `日落 ${weather.today.sunset}`,
+                font: { size: 12, weight: 'bold' },
+                textColor: Colors.textPrimary,
+                maxLines: 1,
+                minScale: 0.8,
+              }
+            ]
+          }
+        ]
       }
     ]
   };
@@ -779,7 +844,7 @@ function createBadge(label, value, valueColor) {
   return {
     type: 'stack',
     direction: 'column',
-    alignItems: 'end',
+    alignItems: 'center', // FIX 7: 改为 center，让文字也在自己的小容器里居中
     gap: 1,
     children: [
       {
@@ -885,15 +950,14 @@ function getWindDir(degree) {
 
 function getQualityColor(quality = '') {
   const text = String(quality);
-  if (/优/.test(text)) return '#34C759';
-  if (/良/.test(text)) return '#FFCC00';
-  if (/轻度/.test(text)) return '#FF9500';
-  if (/中度/.test(text)) return '#FF3B30';
+  if (/优/.test(text)) return '#50C878'; 
+  if (/良/.test(text)) return '#2E8B57'; 
+  if (/轻度/.test(text)) return '#F59E0B'; 
+  if (/中度/.test(text)) return '#FF6B6B'; 
   if (/重度|严重/.test(text)) return '#C10015';
   return '#8E8E93';
 }
 
-// FIX 2: 固定使用 Asia/Shanghai 时区，避免非中国设备时间错误
 function formatCurrentTime() {
   const now = new Date();
   const opts = {
@@ -905,7 +969,6 @@ function formatCurrentTime() {
     second: '2-digit',
     hour12: false,
   };
-  // toLocaleString 在部分环境格式不一，手动拼装保证格式统一
   const parts = new Intl.DateTimeFormat('zh-CN', opts).formatToParts(now);
   const get = (type) => parts.find(p => p.type === type)?.value ?? '00';
   return `${get('month')}-${get('day')} ${get('hour')}:${get('minute')}:${get('second')}`;
