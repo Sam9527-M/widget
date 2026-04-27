@@ -1,10 +1,9 @@
 /**
- * 今日天气 - Egern 小组件 (彩色数据定制版)
+ * 今日天气 - Egern 小组件 (Open-Meteo 免费 API 版)
  *
  * 环境变量：
  * - CITY：城市/区县名称
  * - time：刷新间隔（分钟），默认 30
- *
  */
 
 const DEFAULT_CITY = '南宁';
@@ -13,10 +12,10 @@ const DEFAULT_TIME = 30;
 const Colors = {
   bg: { light: '#FFFFFF', dark: '#1C1C1E' },
   cardBg: { light: '#F2F2F7', dark: '#2C2C2E' },
-  textPrimary: { light: '#34495E', dark: '#FFFFFF' }, // 深色模式字体已改为纯白 #FFFFFF
-  redWarning: '#FF6B6B',    // 珊瑚红：定位图标与 PM2.5 专属强调色
-  orangeWeather: '#F59E0B', // 琥珀橙：天气状况专属颜色
-  greenTemp: '#50C878'      // 薄荷绿：主温度专属颜色
+  textPrimary: { light: '#34495E', dark: '#FFFFFF' }, 
+  redWarning: '#FF6B6B',    
+  orangeWeather: '#F59E0B', 
+  greenTemp: '#50C878'      
 };
 
 export default async function(ctx) {
@@ -59,12 +58,13 @@ async function fetchWeather(ctx, cityName) {
   const lon = loc.longitude;
   const displayCity = cityName;
 
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=Asia%2FShanghai`;
+  // 请求中加入了 apparent_temperature (体感) 和 precipitation (降水)
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,precipitation,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=Asia%2FShanghai`;
   const aqiUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=pm10,pm2_5,us_aqi&timezone=Asia%2FShanghai`;
 
   const [resp, aqiResp] = await Promise.all([
     ctx.http.get(url, { timeout: 6000 }),
-    ctx.http.get(aqiUrl, { timeout: 6000 })
+    ctx.http.get(aqiUrl, { timeout: 6000 }).catch(() => ({ json: async () => ({}) }))
   ]);
   const data = await resp.json();
   const aqiData = await aqiResp.json();
@@ -91,27 +91,33 @@ async function fetchWeather(ctx, cityName) {
 
   const today = forecast[0] || {};
 
-  const aqiVal = aqiCurrent.us_aqi ?? 0;
-  let quality = '优';
-  if (aqiVal > 300) quality = '严重';
-  else if (aqiVal > 200) quality = '重度';
-  else if (aqiVal > 150) quality = '中度';
-  else if (aqiVal > 100) quality = '轻度';
-  else if (aqiVal > 50) quality = '良';
+  const aqiVal = aqiCurrent.us_aqi ?? '--';
+  let quality = '--';
+  if (aqiVal !== '--') {
+    if (aqiVal > 300) quality = '严重';
+    else if (aqiVal > 200) quality = '重度';
+    else if (aqiVal > 150) quality = '中度';
+    else if (aqiVal > 100) quality = '轻度';
+    else if (aqiVal > 50) quality = '良';
+    else quality = '优';
+  }
 
   return {
     city: displayCity,
     updateTime: formatCurrentTime(),
     currentTemp: Math.round(current.temperature_2m ?? 0),
+    feelsLike: `${Math.round(current.apparent_temperature ?? current.temperature_2m ?? 0)}°C`, // 体感温度
     humidity: `${Math.round(current.relative_humidity_2m ?? 0)}%`,
+    precip: `${current.precipitation ?? 0} mm`, // 降水量
     quality: quality,
+    aqi: aqiVal,
     pm25: stringifyValue(aqiCurrent.pm2_5),
     pm10: stringifyValue(aqiCurrent.pm10),
-    tips: `当前 AQI ${aqiVal}，温度 ${Math.round(current.temperature_2m ?? 0)}°C。`,
+    tips: `当前 AQI ${aqiVal}，体感温度 ${Math.round(current.apparent_temperature ?? current.temperature_2m ?? 0)}°C。`,
     today: {
       ...today,
       windDir: `${getWindDir(current.wind_direction_10m ?? 0)} ${getWindScale(current.wind_speed_10m ?? 0)}级`,
-      windLevel: `${(current.wind_speed_10m ?? 0).toFixed(1)} 公里/时`,
+      windSpeed: `${(current.wind_speed_10m ?? 0).toFixed(1)} km/h`,
     },
     forecast: forecast.slice(0, 3),
   };
@@ -219,7 +225,7 @@ function renderSmall(weather, refreshAfter) {
         children: [
           createMiniInfo('thermometer.medium', `${weather.today.low}° ~ ${weather.today.high}°`),
           createMiniInfo('humidity.fill', weather.humidity),
-          createMiniInfo('wind', `${weather.today.windDir} ${weather.today.windLevel}`),
+          createMiniInfo('wind', `${weather.today.windDir}`),
         ],
       },
     ],
@@ -356,15 +362,18 @@ function renderMedium(weather, refreshAfter) {
                 ],
               },
               { type: 'spacer' },
+              // 核心修改：右侧四行列表排版
               {
                 type: 'stack',
                 direction: 'column',
-                alignItems: 'center', // FIX 7: 改为 center，完美对称左侧日出日落布局
-                gap: 4,
+                alignItems: 'start', 
+                gap: 3,
                 width: 85,
                 children: [
-                  createBadge('空气', weather.quality, getQualityColor(weather.quality)),
-                  createBadge('PM2.5', weather.pm25, Colors.redWarning),
+                  createRightListRow('空气', weather.quality, getQualityColor(weather.quality)),
+                  createRightListRow('AQI', weather.aqi, getQualityColor(weather.quality)),
+                  createRightListRow('PM2.5', weather.pm25, Colors.redWarning),
+                  createRightListRow('体感', weather.feelsLike, Colors.orangeWeather),
                 ],
               },
             ],
@@ -372,6 +381,7 @@ function renderMedium(weather, refreshAfter) {
         ]
       },
       { type: 'spacer' },
+      // 底部 4 卡片排版
       {
         type: 'stack',
         direction: 'row',
@@ -379,7 +389,8 @@ function renderMedium(weather, refreshAfter) {
         children: [
           createInfoCard('humidity.fill', '湿度', weather.humidity, '#007AFF'),
           createInfoCard('wind', '风向', weather.today.windDir, '#AF52DE'),
-          createInfoCard('gauge.medium', '风力', weather.today.windLevel, '#FF9500'),
+          createInfoCard('gauge.medium', '风速', weather.today.windSpeed, '#FF9500'),
+          createInfoCard('drop.fill', '降水', weather.precip, '#32ADE6'),
         ],
       },
     ],
@@ -461,8 +472,8 @@ function renderLarge(weather, refreshAfter) {
         children: [
           createInfoCard('sunrise.fill', '日出', weather.today.sunrise, '#FF9500'),
           createInfoCard('sunset.fill', '日落', weather.today.sunset, '#FF2D55'),
-          createInfoCard('lungs.fill', 'PM2.5', weather.pm25, '#34C759', Colors.redWarning),
-          createInfoCard('wind', 'PM10', weather.pm10, '#32ADE6'),
+          createInfoCard('thermometer.medium', '体感', weather.feelsLike, '#FF9500', Colors.redWarning),
+          createInfoCard('drop.fill', '降水', weather.precip, '#32ADE6'),
         ],
       },
       {
@@ -646,6 +657,16 @@ function renderError(message) {
   };
 }
 
+// 辅助排版函数：用于右侧四行列表布局
+function createRightListRow(label, value, valueColor) {
+  return {
+    type: 'stack', direction: 'row', alignItems: 'center', gap: 4, children: [
+      { type: 'text', text: label, font: { size: 11, weight: 'bold' }, textColor: Colors.textPrimary },
+      { type: 'text', text: String(value), font: { size: 12, weight: 'bold' }, textColor: valueColor, maxLines: 1, minScale: 0.8 }
+    ]
+  };
+}
+
 function createIconWithSunTimes(theme, weather, iconSize) {
   return {
     type: 'stack',
@@ -801,7 +822,7 @@ function createInfoCard(icon, label, value, iconColor, valueColor = Colors.textP
     alignItems: 'center',
     gap: 3,
     flex: 1,
-    padding: [7, 4],
+    padding: [7, 2], // 缩小 padding 完美适配 4 卡片
     backgroundColor: Colors.cardBg,
     borderRadius: 14,
     children: [
@@ -814,14 +835,14 @@ function createInfoCard(icon, label, value, iconColor, valueColor = Colors.textP
           {
             type: 'image',
             src: `sf-symbol:${icon}`,
-            width: 14,
-            height: 14,
+            width: 12,
+            height: 12,
             color: iconColor,
           },
           {
             type: 'text',
             text: label,
-            font: { size: 12, weight: 'bold' },
+            font: { size: 11, weight: 'bold' },
             textColor: Colors.textPrimary,
             maxLines: 1,
             minScale: 0.7,
@@ -831,36 +852,10 @@ function createInfoCard(icon, label, value, iconColor, valueColor = Colors.textP
       {
         type: 'text',
         text: value,
-        font: { size: 13, weight: 'bold' },
+        font: { size: 12, weight: 'bold' },
         textColor: valueColor,
         maxLines: 1,
-        minScale: 0.8,
-      },
-    ],
-  };
-}
-
-function createBadge(label, value, valueColor) {
-  return {
-    type: 'stack',
-    direction: 'column',
-    alignItems: 'center', // FIX 7: 改为 center，让文字也在自己的小容器里居中
-    gap: 1,
-    children: [
-      {
-        type: 'text',
-        text: label,
-        font: { size: 'caption2', weight: 'bold' },
-        textColor: Colors.textPrimary,
-        maxLines: 1,
-      },
-      {
-        type: 'text',
-        text: value,
-        font: { size: 'subheadline', weight: 'bold' },
-        textColor: valueColor,
-        maxLines: 1,
-        minScale: 0.7,
+        minScale: 0.6,
       },
     ],
   };
