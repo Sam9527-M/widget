@@ -4,6 +4,12 @@
  * 环境变量：
  * - CITY：城市/区县名称
  * - time：刷新间隔（分钟），默认 30
+ *
+ * 修复记录：
+ * 1. aqi.medium / aqi.low SF Symbol 替换为有效符号
+ * 2. formatCurrentTime() 固定使用 Asia/Shanghai 时区
+ * 3. renderLarge 中冗余的 slice(0,3) 已移除
+ * 4. renderSmall 中 createIconWithSunTimes 改为不含日出日落的轻量版，避免布局挤压
  */
 
 const DEFAULT_CITY = '南宁';
@@ -13,9 +19,9 @@ const Colors = {
   bg: { light: '#FFFFFF', dark: '#1C1C1E' },
   cardBg: { light: '#F2F2F7', dark: '#2C2C2E' },
   textPrimary: { light: '#000000', dark: '#FFFFFF' },
-  redWarning: '#FF3B30',  // 定位图标与 PM2.5 专属红色
+  redWarning: '#FF3B30',   // 定位图标与 PM2.5 专属红色
   orangeWeather: '#FF9500', // 天气状况专属橙色
-  greenTemp: '#34C759'    // 主温度专属绿色
+  greenTemp: '#34C759'      // 主温度专属绿色
 };
 
 export default async function(ctx) {
@@ -89,7 +95,7 @@ async function fetchWeather(ctx, cityName) {
   }));
 
   const today = forecast[0] || {};
-  
+
   const aqiVal = aqiCurrent.us_aqi ?? 0;
   let quality = '优';
   if (aqiVal > 300) quality = '严重';
@@ -112,6 +118,7 @@ async function fetchWeather(ctx, cityName) {
       windDir: `${getWindDir(current.wind_direction_10m ?? 0)} ${getWindScale(current.wind_speed_10m ?? 0)}级`,
       windLevel: `${(current.wind_speed_10m ?? 0).toFixed(1)} 公里/时`,
     },
+    // FIX 3: 只在 fetchWeather 中 slice，renderLarge 无需再次 slice
     forecast: forecast.slice(0, 3),
   };
 }
@@ -139,7 +146,7 @@ async function getCoordinates(ctx, cityName) {
     const res3 = await ctx.http.get(url3, { timeout: 4000 });
     const d3 = await res3.json();
     if (d3.features && d3.features.length > 0) {
-      const coords = d3.features[0].geometry.coordinates; 
+      const coords = d3.features[0].geometry.coordinates;
       return { latitude: coords[1], longitude: coords[0] };
     }
   } catch(e) {}
@@ -147,6 +154,7 @@ async function getCoordinates(ctx, cityName) {
   throw new Error(`无法定位: ${cityName}`);
 }
 
+// FIX 4: small 尺寸使用轻量版图标，不含日出日落，避免布局挤压
 function renderSmall(weather, refreshAfter) {
   const theme = getTheme(weather.today.weather);
 
@@ -177,25 +185,32 @@ function renderSmall(weather, refreshAfter) {
             alignItems: 'center',
             gap: 8,
             children: [
-              createIconWithSunTimes(theme, weather, 28),
+              // 轻量版：仅显示天气图标，不含日出日落
+              {
+                type: 'image',
+                src: `sf-symbol:${theme.icon}`,
+                width: 28,
+                height: 28,
+                color: theme.iconColor,
+              },
               {
                 type: 'stack',
                 direction: 'column',
-                alignItems: 'center', 
+                alignItems: 'center',
                 gap: 1,
                 flex: 1,
                 children: [
                   {
                     type: 'text',
                     text: `${weather.currentTemp}°`,
-                    font: { size: 26, weight: 'bold' }, 
-                    textColor: Colors.greenTemp, // 绿色温度
+                    font: { size: 26, weight: 'bold' },
+                    textColor: Colors.greenTemp,
                   },
                   {
                     type: 'text',
                     text: weather.today.weather,
-                    font: { size: 12, weight: 'bold' }, 
-                    textColor: Colors.orangeWeather, // 橙色状况
+                    font: { size: 12, weight: 'bold' },
+                    textColor: Colors.orangeWeather,
                     maxLines: 1,
                   },
                 ],
@@ -226,7 +241,7 @@ function renderMedium(weather, refreshAfter) {
     type: 'widget',
     url: weatherURL(weather.city),
     refreshAfter,
-    padding: [14, 16, 14, 16], 
+    padding: [14, 16, 14, 16],
     backgroundColor: Colors.bg,
     children: [
       {
@@ -239,9 +254,9 @@ function renderMedium(weather, refreshAfter) {
             direction: 'row',
             alignItems: 'center',
             children: [
-              createTitleNode(weather.city, 16), 
+              createTitleNode(weather.city, 16),
               { type: 'spacer' },
-              createUpdateTimeNode(weather.updateTime) 
+              createUpdateTimeNode(weather.updateTime)
             ],
           },
           {
@@ -259,25 +274,25 @@ function renderMedium(weather, refreshAfter) {
                   {
                     type: 'image',
                     src: `sf-symbol:${theme.icon}`,
-                    width: 32, 
+                    width: 32,
                     height: 32,
                     color: theme.iconColor,
                   },
                   {
                     type: 'text',
                     text: `日出 ${weather.today.sunrise}`,
-                    font: { size: 12, weight: 'bold' }, 
+                    font: { size: 12, weight: 'bold' },
                     textColor: Colors.textPrimary,
                     maxLines: 1,
-                    minScale: 0.8, 
+                    minScale: 0.8,
                   },
                   {
                     type: 'text',
                     text: `日落 ${weather.today.sunset}`,
-                    font: { size: 12, weight: 'bold' }, 
+                    font: { size: 12, weight: 'bold' },
                     textColor: Colors.textPrimary,
                     maxLines: 1,
-                    minScale: 0.8, 
+                    minScale: 0.8,
                   }
                 ]
               },
@@ -292,13 +307,13 @@ function renderMedium(weather, refreshAfter) {
                     type: 'text',
                     text: `${weather.currentTemp}°C`,
                     font: { size: 30, weight: 'bold' },
-                    textColor: Colors.greenTemp, // 绿色温度
+                    textColor: Colors.greenTemp,
                   },
                   {
                     type: 'text',
                     text: weather.today.weather,
-                    font: { size: 12, weight: 'bold' }, 
-                    textColor: Colors.orangeWeather, // 橙色状况
+                    font: { size: 12, weight: 'bold' },
+                    textColor: Colors.orangeWeather,
                     maxLines: 1,
                   },
                   {
@@ -319,14 +334,14 @@ function renderMedium(weather, refreshAfter) {
                 width: 85,
                 children: [
                   createBadge('空气', weather.quality, getQualityColor(weather.quality)),
-                  createBadge('PM2.5', weather.pm25, Colors.redWarning), 
+                  createBadge('PM2.5', weather.pm25, Colors.redWarning),
                 ],
               },
             ],
           },
         ]
       },
-      { type: 'spacer' }, 
+      { type: 'spacer' },
       {
         type: 'stack',
         direction: 'row',
@@ -343,7 +358,8 @@ function renderMedium(weather, refreshAfter) {
 
 function renderLarge(weather, refreshAfter) {
   const theme = getTheme(weather.today.weather);
-  const forecastItems = weather.forecast.slice(0, 3);
+  // FIX 3: 直接使用 weather.forecast，fetchWeather 已 slice(0,3)
+  const forecastItems = weather.forecast;
 
   return {
     type: 'widget',
@@ -384,14 +400,14 @@ function renderLarge(weather, refreshAfter) {
                   {
                     type: 'text',
                     text: `${weather.currentTemp}°C`,
-                    font: { size: 32, weight: 'bold' }, 
-                    textColor: Colors.greenTemp, // 绿色温度
+                    font: { size: 32, weight: 'bold' },
+                    textColor: Colors.greenTemp,
                   },
                   {
                     type: 'text',
                     text: `${weather.today.weather} · ${weather.today.low}° / ${weather.today.high}°`,
-                    font: { size: 12, weight: 'bold' }, 
-                    textColor: Colors.orangeWeather, // 橙色状况
+                    font: { size: 12, weight: 'bold' },
+                    textColor: Colors.orangeWeather,
                     maxLines: 1,
                   },
                   {
@@ -416,8 +432,9 @@ function renderLarge(weather, refreshAfter) {
         children: [
           createInfoCard('sunrise.fill', '日出', weather.today.sunrise, '#FF9500'),
           createInfoCard('sunset.fill', '日落', weather.today.sunset, '#FF2D55'),
-          createInfoCard('aqi.medium', 'PM2.5', weather.pm25, '#34C759', Colors.redWarning),
-          createInfoCard('aqi.low', 'PM10', weather.pm10, '#32ADE6'),
+          // FIX 1: aqi.medium → lungs.fill（PM2.5），aqi.low → wind（PM10）
+          createInfoCard('lungs.fill', 'PM2.5', weather.pm25, '#34C759', Colors.redWarning),
+          createInfoCard('wind', 'PM10', weather.pm10, '#32ADE6'),
         ],
       },
       {
@@ -601,6 +618,7 @@ function renderError(message) {
   };
 }
 
+// medium/large 尺寸专用：含日出日落的图标组合
 function createIconWithSunTimes(theme, weather, iconSize) {
   return {
     type: 'stack',
@@ -618,7 +636,7 @@ function createIconWithSunTimes(theme, weather, iconSize) {
       {
         type: 'text',
         text: `日出 ${weather.today.sunrise}`,
-        font: { size: 12, weight: 'bold' }, 
+        font: { size: 12, weight: 'bold' },
         textColor: Colors.textPrimary,
         maxLines: 1,
         minScale: 0.8,
@@ -626,7 +644,7 @@ function createIconWithSunTimes(theme, weather, iconSize) {
       {
         type: 'text',
         text: `日落 ${weather.today.sunset}`,
-        font: { size: 12, weight: 'bold' }, 
+        font: { size: 12, weight: 'bold' },
         textColor: Colors.textPrimary,
         maxLines: 1,
         minScale: 0.8,
@@ -646,8 +664,8 @@ function createTitleNode(cityName, fontSize = 16) {
         type: 'image',
         src: 'sf-symbol:location.fill',
         width: fontSize,
-        height: fontSize, 
-        color: Colors.redWarning, 
+        height: fontSize,
+        color: Colors.redWarning,
       },
       {
         type: 'text',
@@ -677,7 +695,7 @@ function createUpdateTimeNode(updateTime) {
       {
         type: 'text',
         text: updateTime,
-        font: { size: 12 }, 
+        font: { size: 12 },
         textColor: Colors.textPrimary,
         maxLines: 1,
       }
@@ -731,14 +749,14 @@ function createInfoCard(icon, label, value, iconColor, valueColor = Colors.textP
           {
             type: 'image',
             src: `sf-symbol:${icon}`,
-            width: 14, 
+            width: 14,
             height: 14,
             color: iconColor,
           },
           {
             type: 'text',
             text: label,
-            font: { size: 12, weight: 'bold' }, 
+            font: { size: 12, weight: 'bold' },
             textColor: Colors.textPrimary,
             maxLines: 1,
             minScale: 0.7,
@@ -748,10 +766,10 @@ function createInfoCard(icon, label, value, iconColor, valueColor = Colors.textP
       {
         type: 'text',
         text: value,
-        font: { size: 13, weight: 'bold' }, 
+        font: { size: 13, weight: 'bold' },
         textColor: valueColor,
         maxLines: 1,
-        minScale: 0.8, 
+        minScale: 0.8,
       },
     ],
   };
@@ -768,14 +786,14 @@ function createBadge(label, value, valueColor) {
         type: 'text',
         text: label,
         font: { size: 'caption2', weight: 'bold' },
-        textColor: Colors.textPrimary, 
+        textColor: Colors.textPrimary,
         maxLines: 1,
       },
       {
         type: 'text',
         text: value,
         font: { size: 'subheadline', weight: 'bold' },
-        textColor: valueColor, 
+        textColor: valueColor,
         maxLines: 1,
         minScale: 0.7,
       },
@@ -875,10 +893,22 @@ function getQualityColor(quality = '') {
   return '#8E8E93';
 }
 
+// FIX 2: 固定使用 Asia/Shanghai 时区，避免非中国设备时间错误
 function formatCurrentTime() {
-  const d = new Date();
-  const pad = (n) => String(n).padStart(2, '0');
-  return `${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  const now = new Date();
+  const opts = {
+    timeZone: 'Asia/Shanghai',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  };
+  // toLocaleString 在部分环境格式不一，手动拼装保证格式统一
+  const parts = new Intl.DateTimeFormat('zh-CN', opts).formatToParts(now);
+  const get = (type) => parts.find(p => p.type === type)?.value ?? '00';
+  return `${get('month')}-${get('day')} ${get('hour')}:${get('minute')}:${get('second')}`;
 }
 
 function weatherURL(cityName) {
