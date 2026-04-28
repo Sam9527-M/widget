@@ -225,7 +225,7 @@ export default async function (ctx) {
       const OPEN_MINUTE = 30;
 
       // 远程 json 优先
-      const hkDayUrl = ctx.env['HK_DAY'] || 'https://vhimg1.edgozy.com/assets/hk_day.json';
+      const hkDayUrl = ctx.env['HK_DAY'] || '';
       const remoteDays = await safeGet(hkDayUrl);
 
       // 解析远程 JSON 寻找最近的未来开奖日
