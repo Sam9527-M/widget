@@ -1,34 +1,28 @@
-/**
- * 纯净版（无任何状态显示）
- * - 不显示：已更新 / 开奖中 / 等待开奖 / 缓存中
- * - 只显示：期号 + 球号 + 生肖 + 五行 + 日期时间 + 倒计时
- * - 强制防缓存 + API fallback
- * - 左上角标题前加入开奖机图标 🎰
- */
-
+/* 彩票2（香港新彩时间修复版，适配远程日期格式） */
 export default async function (ctx) {
 
   const LOTTERY_CONFIG = {
-    '澳门': { type: 'macau1' },
-    '新澳门': { type: 'macau2' },
-    '老澳门': { type: 'macauOld' },
-    '香港': { type: 'hk' },
-    '新香港': { type: 'newHK' }
+    '澳门': 'macau1',
+    '新澳门': 'macau2',
+    '老澳门': 'macauOld',
+    '香港': 'hk',
+    '新香港': 'newHK',
+    '香港新彩': 'hkNew'
   };
 
   const DEFAULT_LOTTERY = '新澳门';
   const lotteryNameInput = ctx.env['彩票类型'] || DEFAULT_LOTTERY;
-  const config = LOTTERY_CONFIG[lotteryNameInput];
+  const lotteryType = LOTTERY_CONFIG[lotteryNameInput];
 
   const WAVE_COLOR = { red: '#FF3B30', blue: '#007AFF', green: '#34C759' };
   const WAVE_MAP = {
-    red: ['01','02','07','08','12','13','18','19','23','24','29','30','34','35','40','45','46'],
-    blue: ['03','04','09','10','14','15','20','25','26','31','36','37','41','42','47','48'],
+    red:   ['01','02','07','08','12','13','18','19','23','24','29','30','34','35','40','45','46'],
+    blue:  ['03','04','09','10','14','15','20','25','26','31','36','37','41','42','47','48'],
     green: ['05','06','11','16','17','21','22','27','28','32','33','38','39','43','44','49']
   };
   const getWaveColor = n => {
     n = String(n).padStart(2, '0');
-    if (WAVE_MAP.red.includes(n)) return WAVE_COLOR.red;
+    if (WAVE_MAP.red.includes(n))  return WAVE_COLOR.red;
     if (WAVE_MAP.blue.includes(n)) return WAVE_COLOR.blue;
     return WAVE_COLOR.green;
   };
@@ -39,15 +33,12 @@ export default async function (ctx) {
     9: "猴", 10: "鸡", 11: "狗", 12: "猪"
   };
 
-  // ============================
-  // 星期五行五行表（来自你上传的图）
-  // ============================
   const FIVE_ELEMENTS_MAP = {
-    metal: ['04','05','12','13','26','27','34','35','42','43'], // 金
-    wood:  ['08','09','16','17','24','25','38','39','46','47'], // 木
-    water: ['01','14','15','22','23','30','31','44','45'],      // 水
-    fire:  ['02','03','10','11','18','19','32','33','40','41','48','49'], // 火
-    earth: ['06','07','20','21','28','29','36','37']            // 土
+    metal: ['04','05','12','13','26','27','34','35','42','43'],
+    wood:  ['08','09','16','17','24','25','38','39','46','47'],
+    water: ['01','14','15','22','23','30','31','44','45'],
+    fire:  ['02','03','10','11','18','19','32','33','40','41','48','49'],
+    earth: ['06','07','20','21','28','29','36','37']
   };
 
   function getFiveElement(num) {
@@ -59,29 +50,24 @@ export default async function (ctx) {
     return "土";
   }
 
-  // ============================
-  // 开奖时间 = API 时间 + 3 分钟
-  // ============================
-  function getDisplayOpenTimePlus3() {
-    const [h, m] = data.officeTime.split(':').map(Number);
+  function getDisplayOpenTimePlus3(officeTime) {
+    if (!officeTime || !officeTime.includes(':')) return '';
+    const [h, m] = officeTime.split(':').map(Number);
     const d = new Date();
-    d.setHours(h, m + 3, 0, 0); // 自动进位
-
-    const hh = String(d.getHours()).padStart(2, '0');
-    const mm = String(d.getMinutes()).padStart(2, '0');
-    return `${hh}:${mm}`;
+    d.setHours(h, m + 3, 0, 0);
+    return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
   }
 
   const C = {
-    bg: '#FFFFFF',
-    text: '#111111',
-    sub: '#8E8E93',
+    bg:    { light: '#FFFFFF', dark: '#1C1C1E' },
+    text:  { light: '#111111', dark: '#FFFFFF' },
+    sub:   '#8E8E93',
     title: '#34C759',
-    date: '#C7C7CC'
+    date:  '#C7C7CC'
   };
 
-  let data = null;
   const ts = Date.now();
+  let data = null;
 
   async function safeGet(url) {
     try {
@@ -91,60 +77,21 @@ export default async function (ctx) {
       return null;
     }
   }
-  // ============================
-  // 彩种 API（保持不变）
-  // ============================
-  if (config.type === 'macau2') {
-    const raw = await safeGet(`https://macaumarksix.com/api/macaujc2.com?ts=${ts}`);
-    data = raw ? parseMac(raw[0], '新澳门') : null;
-  }
-  else if (config.type === 'macau1') {
-    const raw = await safeGet(`https://macaumarksix.com/api/macaujc.com?ts=${ts}`);
-    data = raw ? parseMac(raw[0], '澳门') : null;
-  }
-  else if (config.type === 'macauOld') {
-    const raw = await safeGet(`https://api3.marksix6.net/lottery_api.php?type=oldMacau&ts=${ts}`);
-    data = raw ? parseHK(raw, '老澳门') : null;
-  }
-  else if (config.type === 'hk') {
-    const raw = await safeGet(`https://api3.marksix6.net/lottery_api.php?type=hk&ts=${ts}`);
-    data = raw ? parseHK(raw, '香港') : null;
-  }
-  else if (config.type === 'newHK') {
-    const raw = await safeGet(`https://xg-hk.com/gw/ball/api/getCurrentBall?ts=${ts}`);
-    data = raw?.data ? parseNewHK(raw.data, '新香港') : null;
+
+  async function fetchHKNew(ts) {
+    const domains = [
+      "https://2267966.pro",
+      "https://ck.k33321.xyz",
+      "https://www.hk3217.com"
+    ];
+    for (const d of domains) {
+      const raw = await safeGet(`${d}/ajax_get.php?site=102&ts=${ts}`);
+      if (raw && raw.data) return raw;
+    }
+    return null;
   }
 
-  if (!data) {
-    return {
-      type: 'widget',
-      padding: 20,
-      children: [
-        { type: 'text', text: '⚠️ 数据获取失败', textColor: '#FF3B30', font: { size: 16, weight: 'bold' } },
-        { type: 'text', text: '请稍后再试', textColor: '#8E8E93', font: { size: 14 } }
-      ]
-    };
-  }
-
-  // ============================
-  // 原解析函数（保持不变）
-  // ============================
-  function parseMac(raw, name) {
-    const nums = raw.openCode.split(',').map(n => n.trim());
-    const zodiacs = raw.zodiac.split(',').map(z => z.trim());
-    const dateObj = new Date(raw.openTime.replace(' ', 'T'));
-    return {
-      issue: raw.expect,
-      dateStr: dateObj.toLocaleDateString('zh-CN'),
-      weekDay: ['周日','周一','周二','周三','周四','周五','周六'][dateObj.getDay()],
-      openCodeArr: nums,
-      zodiacArr: zodiacs,
-      officeTime: raw.openTime.substring(11, 16),
-      lotteryName: name
-    };
-  }
-
-  function parseHK(raw, name) {
+  function parseCommon(raw, name) {
     const nums = raw.openCode.split(',').map(n => n.trim());
     const zodiacs = raw.zodiac.split(',').map(z => z.trim());
     const dateObj = new Date(raw.openTime.replace(' ', 'T'));
@@ -166,7 +113,7 @@ export default async function (ctx) {
       const b = raw[`ball${i}`];
       if (!b) continue;
       nums.push(String(b.ballNo).padStart(2, '0'));
-      zodiacs.push(ZODIAC_MAP[b.ballbeyond] || "");
+      zodiacs.push(ZODIAC_MAP[Number(b.ballbeyond)] || "");
     }
     const dateObj = new Date(raw.ballTime.replace(' ', 'T'));
     return {
@@ -179,49 +126,163 @@ export default async function (ctx) {
       lotteryName: name
     };
   }
+
+  // ⭐ 香港新彩：开奖结果 = 昨晚（nexttime - 1 天）
+  function parseHKNew(raw, name) {
+    const list = raw.data || {};
+    const nums = [];
+    const zodiacs = [];
+
+    const keys = Object.keys(list).sort((a, b) => Number(a) - Number(b));
+    for (const k of keys) {
+      const item = list[k];
+      nums.push(String(item.tit).padStart(2, '0'));
+      zodiacs.push(item.tit0 || "");
+    }
+
+    const meta = raw.other || {};
+    const pad = n => String(n).padStart(2, '0');
+
+    const nextDate = meta.nexttime ? new Date(meta.nexttime.replace(' ', 'T')) : null;
+
+    // 昨晚开奖时间 = nexttime - 24h
+    const openDate = nextDate
+      ? new Date(nextDate.getTime() - 24 * 3600 * 1000)
+      : new Date(meta.servertime.replace(' ', 'T'));
+
+    return {
+      issue: meta.qishu,
+      dateStr: openDate.toLocaleDateString('zh-CN'),
+      weekDay: ['周日','周一','周二','周三','周四','周五','周六'][openDate.getDay()],
+      openCodeArr: nums,
+      zodiacArr: zodiacs,
+
+      // 昨晚开奖时间（用于显示 +3 分钟）
+      officeTime: `${pad(openDate.getHours())}:${pad(openDate.getMinutes())}`,
+
+      // 今晚下期开奖时间（用于倒计时）
+      nextOfficeTime: nextDate
+        ? `${pad(nextDate.getHours())}:${pad(nextDate.getMinutes())}`
+        : null,
+
+      lotteryName: name
+    };
+  }
   // ============================
-  // 倒计时（保持不变）
+  //       数据获取部分
   // ============================
-  function getCountdown() {
+
+  if (lotteryType === 'macau2') {
+    const raw = await safeGet(`https://macaumarksix.com/api/macaujc2.com?ts=${ts}`);
+    data = raw ? parseCommon(raw[0], '新澳门') : null;
+  }
+  else if (lotteryType === 'macau1') {
+    const raw = await safeGet(`https://macaumarksix.com/api/macaujc.com?ts=${ts}`);
+    data = raw ? parseCommon(raw[0], '澳门') : null;
+  }
+  else if (lotteryType === 'macauOld') {
+    const raw = await safeGet(`https://api3.marksix6.net/lottery_api.php?type=oldMacau&ts=${ts}`);
+    data = raw ? parseCommon(raw, '老澳门') : null;
+  }
+  else if (lotteryType === 'hk') {
+    const raw = await safeGet(`https://api3.marksix6.net/lottery_api.php?type=hk&ts=${ts}`);
+    data = raw ? parseCommon(raw, '香港') : null;
+  }
+  else if (lotteryType === 'newHK') {
+    const mainUrl = `https://xg-hk.com/gw/ball/api/getCurrentBall`;
+    const fallbackUrl = `https://xg-hk.com/gw/ball/api/getCurrentBall?ts=${ts}`;
+    let raw = await safeGet(mainUrl);
+    if (!raw || !raw.data) raw = await safeGet(fallbackUrl);
+    data = raw?.data ? parseNewHK(raw.data, '新香港') : null;
+  }
+  else if (lotteryType === 'hkNew') {
+    const raw = await fetchHKNew(ts);
+    data = raw ? parseHKNew(raw, '香港新彩') : null;
+  }
+
+  if (!data) {
+    return {
+      type: 'widget',
+      backgroundColor: C.bg,
+      padding: 20,
+      children: [
+        { type: 'text', text: '⚠️ 数据获取失败', textColor: '#FF3B30', font: { size: 16, weight: 'bold' } },
+        { type: 'text', text: '请稍后再试', textColor: C.sub, font: { size: 14 } }
+      ]
+    };
+  }
+
+  // ============================
+  //       倒计时（适配远程日期格式版）
+  // ============================
+
+  async function getCountdown() {
     const now = new Date();
 
+    // 香港（优先读取远程具体日期，默认周二四六）
     if (data.lotteryName === '香港') {
       const OPEN_HOUR = 21;
       const OPEN_MINUTE = 30;
-      const OPEN_DAYS = [2, 4, 6];
 
-      for (let i = 0; i < 7; i++) {
-        const d = new Date(now);
-        d.setDate(now.getDate() + i);
-        const day = d.getDay();
+      // 远程 json 优先
+      const hkDayUrl = ctx.env['HK_DAY'] || 'https://vhimg1.edgozy.com/assets/hk_day.json';
+      const remoteDays = await safeGet(hkDayUrl);
 
-        if (OPEN_DAYS.includes(day)) {
-          d.setHours(OPEN_HOUR, OPEN_MINUTE, 0, 0);
-          if (d <= now) continue;
+      // 解析远程 JSON 寻找最近的未来开奖日
+      if (remoteDays && remoteDays.data && Array.isArray(remoteDays.data)) {
+        const futureDates = remoteDays.data
+          .map(item => {
+            const [y, m, d] = item.day.split('-').map(Number);
+            return new Date(y, m - 1, d, OPEN_HOUR, OPEN_MINUTE, 0, 0);
+          })
+          .filter(dt => dt > now)
+          .sort((a, b) => a - b); // 升序排序
 
-          const diff = d - now;
-          const hours = Math.floor(diff / 1000 / 3600);
-          const minutes = Math.floor((diff / 1000 % 3600) / 60);
-          const seconds = Math.floor(diff / 1000 % 60);
-          return `${hours}小时 ${minutes}分 ${seconds}秒`;
+        if (futureDates.length > 0) {
+          const nextDraw = futureDates[0];
+          const diff = nextDraw - now;
+          return `${Math.floor(diff/3600000)}小时 ${Math.floor(diff/60000%60)}分 ${Math.floor(diff/1000%60)}秒`;
         }
       }
 
-      return `等待下期开奖`;
+      // 如果 JSON 获取失败或者里面没有未来的日期，降级为默认的固定周二、四、六
+      const OPEN_DAYS = [2, 4, 6];
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(now);
+        d.setDate(now.getDate() + i);
+        if (OPEN_DAYS.includes(d.getDay())) {
+          d.setHours(OPEN_HOUR, OPEN_MINUTE, 0, 0);
+          if (d > now) {
+            const diff = d - now;
+            return `${Math.floor(diff/3600000)}小时 ${Math.floor(diff/60000%60)}分 ${Math.floor(diff/1000%60)}秒`;
+          }
+        }
+      }
+      return '等待下期开奖';
     }
 
+    // ⭐ 香港新彩：倒计时 = 今晚 nextOfficeTime
+    if (data.lotteryName === '香港新彩' && data.nextOfficeTime) {
+      const [h, m] = data.nextOfficeTime.split(':').map(Number);
+      const next = new Date();
+      next.setHours(h, m, 0, 0);
+      if (next < now) next.setDate(next.getDate() + 1);
+
+      const diff = next - now;
+      return `${Math.floor(diff/3600000)}小时 ${Math.floor(diff/60000%60)}分 ${Math.floor(diff/1000%60)}秒`;
+    }
+
+    // 其他彩种
     const [h, m] = data.officeTime.split(':').map(Number);
     const next = new Date();
     next.setHours(h, m, 0, 0);
     if (next < now) next.setDate(next.getDate() + 1);
+
     const diff = next - now;
-    const hours = Math.floor(diff / 1000 / 3600);
-    const minutes = Math.floor((diff / 1000 % 3600) / 60);
-    const seconds = Math.floor(diff / 1000 % 60);
-    return `${hours}小时 ${minutes}分 ${seconds}秒`;
+    return `${Math.floor(diff/3600000)}小时 ${Math.floor(diff/60000%60)}分 ${Math.floor(diff/1000%60)}秒`;
   }
 
-  const countdownText = getCountdown();
+  const countdownText = await getCountdown(); // 调用转为异步
 
   const text = (t, opts = {}) => ({
     type: 'text',
@@ -260,7 +321,6 @@ export default async function (ctx) {
       const waveColor = getWaveColor(num);
       const zodiac = data.zodiacArr[i] || '';
       const five = getFiveElement(num);
-
       return {
         type: 'stack',
         direction: 'column',
@@ -286,7 +346,6 @@ export default async function (ctx) {
     padding: 14,
     scale: 0.88,
     refreshAfter: new Date(Date.now() + 30000).toISOString(),
-
     children: [
       {
         type: 'stack',
@@ -309,11 +368,10 @@ export default async function (ctx) {
 
       { type: 'spacer', length: 6 },
 
-      text(`${data.dateStr} ${data.weekDay}  ${getDisplayOpenTimePlus3()}开奖结果`, { 
-        size: 13, 
-        weight: 'bold', 
-        color: C.text
-      }),
+      text(
+        `${data.dateStr} ${data.weekDay}  ${getDisplayOpenTimePlus3(data.officeTime)} 开奖结果`,
+        { size: 13, weight: 'bold', color: C.text }
+      ),
 
       { type: 'spacer', length: 10 },
 
@@ -321,7 +379,11 @@ export default async function (ctx) {
 
       { type: 'spacer', length: 10 },
 
-      text(`距离下期开奖：${countdownText}`, { size: 13, weight: 'medium', color: '#FF3B30' })
+      text(`距离下期开奖：${countdownText}`, {
+        size: 13,
+        weight: 'medium',
+        color: '#FF3B30'
+      })
     ]
   };
 }
