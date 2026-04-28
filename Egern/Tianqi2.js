@@ -6,8 +6,7 @@
  * - time：刷新间隔（分钟），默认 30
  * - API_KEY：和风天气个人 API Key
  * - API_HOST：个人 API Host (从和风控制台获取)
- * 
- * 必须使用个人API Host：每个开发者账号都有独立的API Host
+ * * 必须使用个人API Host：每个开发者账号都有独立的API Host
  * 从控制台复制：登录 https://console.qweather.com/ → 设置 → 复制API Host
  * KEY获取: 开始请求API之前，你需要先创建项目和凭据 前往控制台-项目管理 点击右上角“创建项目”按钮 填写项目名称，项目名称最多20个字符。你可以稍后对名称进行修改。点击“保存”按钮。然后点你刚创建的项目名称 进去就可以看见了。 ⚠️重要提示: 应用限制 你需要选择不限制
  */
@@ -18,10 +17,10 @@ const DEFAULT_TIME = 30;
 const Colors = {
   bg: { light: '#FFFFFF', dark: '#1C1C1E' },
   cardBg: { light: '#F2F2F7', dark: '#2C2C2E' },
-  textPrimary: { light: '#34495E', dark: '#FFFFFF' }, 
+  textPrimary: { light: '#000000', dark: '#FFFFFF' }, 
   redWarning: '#FF6B6B',    
   orangeWeather: '#F59E0B', 
-  greenTemp: '#50C878'      
+  greenTemp: '#30D158'      
 };
 
 export default async function(ctx) {
@@ -177,7 +176,7 @@ function renderMedium(w, refreshAfter) {
             { type: 'image', src: `sf-symbol:${theme.icon}`, width: 32, height: 32, color: theme.iconColor },
             { type: 'stack', direction: 'column', alignItems: 'start', gap: 2, children: [
               createSunTimeNode('sunrise.fill', `日出 ${w.today.sunrise}`, '#FF9500'),
-              createSunTimeNode('sunset.fill', `日落 ${w.today.sunset}`, '#AF52DE')
+              createSunTimeNode('sunset.fill', `日落 ${w.today.sunset}`, '#FF6B6B') // 修改为红色
             ]}
           ]},
           { type: 'spacer' },
@@ -190,9 +189,9 @@ function renderMedium(w, refreshAfter) {
           // 右侧四行平行排版
           { type: 'stack', direction: 'column', alignItems: 'start', gap: 3, width: 85, children: [
             createRightListRow('空气', w.quality, getQualityColor(w.quality)),
-            createRightListRow('AQI', w.aqi, getQualityColor(w.quality)),
-            createRightListRow('PM2.5', w.pm25, Colors.redWarning),
-            createRightListRow('体感', w.feelsLike, Colors.orangeWeather),
+            createRightListRow('AQI', w.aqi, getAqiColor(w.aqi)),
+            createRightListRow('PM2.5', w.pm25, getPm25Color(w.pm25)),
+            createRightListRow('体感', w.feelsLike, getTempColor(w.feelsLike)),
           ]},
         ],
       },
@@ -274,7 +273,7 @@ function renderLarge(w, refreshAfter) {
         { type: 'stack', direction: 'column', alignItems: 'center', children: [
           { type: 'image', src: `sf-symbol:${theme.icon}`, width: 44, height: 44, color: theme.iconColor },
           createSunTimeNode('sunrise.fill', `日出 ${w.today.sunrise}`, '#FF9500'),
-          createSunTimeNode('sunset.fill', `日落 ${w.today.sunset}`, '#AF52DE')
+          createSunTimeNode('sunset.fill', `日落 ${w.today.sunset}`, '#FF6B6B') // 修改为红色
         ]},
         { type: 'stack', direction: 'column', alignItems: 'center', flex: 1, children: [
           { type: 'text', text: `${w.currentTemp}°C`, font: { size: 32, weight: 'bold' }, textColor: Colors.greenTemp },
@@ -284,8 +283,8 @@ function renderLarge(w, refreshAfter) {
       { type: 'spacer' },
       { type: 'stack', direction: 'row', gap: 8, children: [
         createInfoCard('sunrise.fill', '日出', w.today.sunrise, '#FF9500'),
-        createInfoCard('sunset.fill', '日落', w.today.sunset, '#FF2D55'),
-        createInfoCard('thermometer.medium', '体感', w.feelsLike, '#FF9500', Colors.redWarning),
+        createInfoCard('sunset.fill', '日落', w.today.sunset, '#FF6B6B'), // 修改为红色
+        createInfoCard('thermometer.medium', '体感', w.feelsLike, getTempColor(w.feelsLike), getTempColor(w.feelsLike)),
         createInfoCard('drop.fill', '降水', w.precip, '#32ADE6'),
       ]},
       { type: 'stack', direction: 'column', gap: 8, padding: 10, backgroundColor: Colors.cardBg, borderRadius: 14, children: [
@@ -311,7 +310,8 @@ function createUpdateTimeNode(time) {
   return { type: 'stack', direction: 'row', alignItems: 'center', gap: 3, children: [{ type: 'image', src: 'sf-symbol:clock.fill', width: 12, height: 12, color: Colors.textPrimary }, { type: 'text', text: time, font: { size: 12 }, textColor: Colors.textPrimary }] };
 }
 function createSunTimeNode(icon, text, color) {
-  return { type: 'stack', direction: 'row', alignItems: 'center', gap: 4, children: [{ type: 'image', src: `sf-symbol:${icon}`, width: 12, height: 12, color }, { type: 'text', text, font: { size: 12, weight: 'bold' }, textColor: Colors.textPrimary, minScale: 0.8 }] };
+  // 核心修改：将 textColor 的固定值替换为了传入的 color 变量，实现文字与图标同色
+  return { type: 'stack', direction: 'row', alignItems: 'center', gap: 4, children: [{ type: 'image', src: `sf-symbol:${icon}`, width: 12, height: 12, color }, { type: 'text', text, font: { size: 12, weight: 'bold' }, textColor: color, minScale: 0.8 }] };
 }
 function createInfoCard(icon, label, value, iColor, vColor = Colors.textPrimary) {
   return { type: 'stack', direction: 'column', flex: 1, padding: [7, 2], backgroundColor: Colors.cardBg, borderRadius: 14, alignItems: 'center', children: [{ type: 'stack', direction: 'row', gap: 4, alignItems: 'center', children: [{ type: 'image', src: `sf-symbol:${icon}`, width: 12, height: 12, color: iColor }, { type: 'text', text: label, font: { size: 11, weight: 'bold' }, textColor: Colors.textPrimary }] }, { type: 'text', text: value, font: { size: 12, weight: 'bold' }, textColor: vColor, maxLines: 1, minScale: 0.6 }] };
@@ -325,15 +325,42 @@ function getTheme(t) {
   if (/(雨)/.test(t)) return { icon: 'cloud.rain.fill', iconColor: '#007AFF' };
   if (/(雾|霾|沙)/.test(t)) return { icon: 'sun.haze.fill', iconColor: '#8E8E93' };
   if (/(阴)/.test(t)) return { icon: 'cloud.fill', iconColor: '#8E8E93' };
-  if (/(多云)/.test(t)) return { icon: 'cloud.sun.fill', iconColor: '#34C759' };
+  if (/(多云)/.test(t)) return { icon: 'cloud.sun.fill', iconColor: '#30D158' };
   return { icon: 'sun.max.fill', iconColor: '#FF9500' };
 }
+
+// === 新增：颜色跟随等级计算函数 ===
 function getQualityColor(q) {
-  if (/优/.test(q)) return '#50C878';
+  if (/优/.test(q)) return '#30D158';
   if (/良/.test(q)) return '#F59E0B';
   if (/轻/.test(q)) return '#FF9500';
   return Colors.redWarning;
 }
+function getAqiColor(aqi) {
+  const val = parseInt(aqi);
+  if (isNaN(val)) return Colors.textPrimary;
+  if (val <= 50) return '#30D158';
+  if (val <= 100) return '#F59E0B';
+  if (val <= 150) return '#FF9500';
+  return Colors.redWarning;
+}
+function getPm25Color(pm25) {
+  const val = parseInt(pm25);
+  if (isNaN(val)) return Colors.textPrimary;
+  if (val <= 35) return '#30D158';
+  if (val <= 75) return '#F59E0B';
+  if (val <= 115) return '#FF9500';
+  return Colors.redWarning;
+}
+function getTempColor(tempStr) {
+  const val = parseInt(tempStr);
+  if (isNaN(val)) return Colors.orangeWeather;
+  if (val < 10) return '#32ADE6';
+  if (val <= 26) return '#30D158';
+  if (val <= 32) return '#FF9500';
+  return Colors.redWarning;
+}
+
 function formatCurrentTime() {
   const d = new Date();
   const f = (n) => String(n).padStart(2, '0');
