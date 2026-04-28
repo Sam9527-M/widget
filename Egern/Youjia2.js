@@ -240,7 +240,7 @@ export default async function (ctx) {
         trendInfo = { text: "不作调整", color: "#888888" };
       } else {
         const trend = (valuePart.includes('下调') || valuePart.includes('下跌')) ? '↓' : '↑';
-        const color = trend === '↓' ? "#34C759" : "#FF3B30";
+        const color = trend === '↓' ? "#30D158" : "#FF3B30";
         let amount = "";
 
         const allPrices = valuePart.match(/([\d\.]+)\s*元\/升/g);
@@ -331,7 +331,7 @@ export default async function (ctx) {
   };
 
   const ICON_MAP   = { "92": "fuelpump.fill", "95": "fuelpump.fill", "98": "fuelpump.fill", "0": "fuelpump.fill" };
-  const ICON_COLOR = { "92": "#FFD60A", "95": "#FF9500", "98": "#FF3B30", "0": "#34C759" };
+  const ICON_COLOR = { "92": "#FFD60A", "95": "#FF9500", "98": "#FF3B30", "0": "#30D158" };
   const NAME_CN    = { "92": "92号汽油", "95": "95号汽油", "98": "98号汽油", "0": "0号柴油" };
 
   const format = (v) => (v !== null && v !== undefined ? Number(v).toFixed(2) : "-");
