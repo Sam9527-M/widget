@@ -12,10 +12,10 @@ const DEFAULT_TIME = 30;
 const Colors = {
   bg: { light: '#FFFFFF', dark: '#1C1C1E' },
   cardBg: { light: '#F2F2F7', dark: '#2C2C2E' },
-  textPrimary: { light: '#34495E', dark: '#FFFFFF' }, 
+  textPrimary: { light: '#000000', dark: '#FFFFFF' }, 
   redWarning: '#FF6B6B',    
   orangeWeather: '#F59E0B', 
-  greenTemp: '#50C878'      
+  greenTemp: '#30D158'      
 };
 
 export default async function(ctx) {
@@ -299,7 +299,7 @@ function renderMedium(weather, refreshAfter) {
                             type: 'text',
                             text: `日出 ${weather.today.sunrise}`,
                             font: { size: 12, weight: 'bold' },
-                            textColor: Colors.textPrimary,
+                            textColor: '#FF9500', // 同步修改为黄色
                             maxLines: 1,
                             minScale: 0.8,
                           }
@@ -316,13 +316,13 @@ function renderMedium(weather, refreshAfter) {
                             src: 'sf-symbol:sunset.fill',
                             width: 12,
                             height: 12,
-                            color: '#AF52DE',
+                            color: '#FF6B6B', // 同步修改为红色
                           },
                           {
                             type: 'text',
                             text: `日落 ${weather.today.sunset}`,
                             font: { size: 12, weight: 'bold' },
-                            textColor: Colors.textPrimary,
+                            textColor: '#FF6B6B', // 同步修改为红色
                             maxLines: 1,
                             minScale: 0.8,
                           }
@@ -362,7 +362,7 @@ function renderMedium(weather, refreshAfter) {
                 ],
               },
               { type: 'spacer' },
-              // 核心修改：右侧四行列表排版
+              // 核心修改：右侧四行列表排版，标签深灰，数值根据等级变色
               {
                 type: 'stack',
                 direction: 'column',
@@ -371,9 +371,9 @@ function renderMedium(weather, refreshAfter) {
                 width: 85,
                 children: [
                   createRightListRow('空气', weather.quality, getQualityColor(weather.quality)),
-                  createRightListRow('AQI', weather.aqi, getQualityColor(weather.quality)),
-                  createRightListRow('PM2.5', weather.pm25, Colors.redWarning),
-                  createRightListRow('体感', weather.feelsLike, Colors.orangeWeather),
+                  createRightListRow('AQI', weather.aqi, getAqiColor(weather.aqi)),
+                  createRightListRow('PM2.5', weather.pm25, getPm25Color(weather.pm25)),
+                  createRightListRow('体感', weather.feelsLike, getTempColor(weather.feelsLike)),
                 ],
               },
             ],
@@ -471,8 +471,8 @@ function renderLarge(weather, refreshAfter) {
         gap: 8,
         children: [
           createInfoCard('sunrise.fill', '日出', weather.today.sunrise, '#FF9500'),
-          createInfoCard('sunset.fill', '日落', weather.today.sunset, '#FF2D55'),
-          createInfoCard('thermometer.medium', '体感', weather.feelsLike, '#FF9500', Colors.redWarning),
+          createInfoCard('sunset.fill', '日落', weather.today.sunset, '#FF6B6B'), // 同步修改为红色
+          createInfoCard('thermometer.medium', '体感', weather.feelsLike, getTempColor(weather.feelsLike), getTempColor(weather.feelsLike)), // 颜色跟随体感温度变化
           createInfoCard('drop.fill', '降水', weather.precip, '#32ADE6'),
         ],
       },
@@ -704,7 +704,7 @@ function createIconWithSunTimes(theme, weather, iconSize) {
                 type: 'text',
                 text: `日出 ${weather.today.sunrise}`,
                 font: { size: 12, weight: 'bold' },
-                textColor: Colors.textPrimary,
+                textColor: '#FF9500', // 同步修改为黄色
                 maxLines: 1,
                 minScale: 0.8,
               }
@@ -721,13 +721,13 @@ function createIconWithSunTimes(theme, weather, iconSize) {
                 src: 'sf-symbol:sunset.fill',
                 width: 12,
                 height: 12,
-                color: '#AF52DE',
+                color: '#FF6B6B', // 同步修改为红色
               },
               {
                 type: 'text',
                 text: `日落 ${weather.today.sunset}`,
                 font: { size: 12, weight: 'bold' },
-                textColor: Colors.textPrimary,
+                textColor: '#FF6B6B', // 同步修改为红色
                 maxLines: 1,
                 minScale: 0.8,
               }
@@ -897,7 +897,7 @@ function getTheme(weatherText = '') {
     iconColor = '#8E8E93';
   } else if (/(多云)/.test(text)) {
     icon = 'cloud.sun.fill';
-    iconColor = '#34C759';
+    iconColor = '#30D158';
   }
 
   return { icon, iconColor };
@@ -943,14 +943,39 @@ function getWindDir(degree) {
   return arr[(val % 16)];
 }
 
-function getQualityColor(quality = '') {
-  const text = String(quality);
-  if (/优/.test(text)) return '#50C878'; 
-  if (/良/.test(text)) return '#2E8B57'; 
-  if (/轻度/.test(text)) return '#F59E0B'; 
-  if (/中度/.test(text)) return '#FF6B6B'; 
-  if (/重度|严重/.test(text)) return '#C10015';
-  return '#8E8E93';
+// === 颜色计算函数 (与上一版严格一致) ===
+function getQualityColor(q) {
+  if (/优/.test(q)) return '#30D158';
+  if (/良/.test(q)) return '#F59E0B';
+  if (/轻/.test(q)) return '#FF9500';
+  return Colors.redWarning;
+}
+
+function getAqiColor(aqi) {
+  const val = parseInt(aqi);
+  if (isNaN(val)) return Colors.textPrimary;
+  if (val <= 50) return '#30D158';
+  if (val <= 100) return '#F59E0B';
+  if (val <= 150) return '#FF9500';
+  return Colors.redWarning;
+}
+
+function getPm25Color(pm25) {
+  const val = parseInt(pm25);
+  if (isNaN(val)) return Colors.textPrimary;
+  if (val <= 35) return '#30D158';
+  if (val <= 75) return '#F59E0B';
+  if (val <= 115) return '#FF9500';
+  return Colors.redWarning;
+}
+
+function getTempColor(tempStr) {
+  const val = parseInt(tempStr);
+  if (isNaN(val)) return Colors.orangeWeather;
+  if (val < 10) return '#32ADE6';
+  if (val <= 26) return '#30D158';
+  if (val <= 32) return '#FF9500';
+  return Colors.redWarning;
 }
 
 function formatCurrentTime() {
