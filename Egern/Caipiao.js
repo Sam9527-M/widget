@@ -203,8 +203,8 @@ export default async function (ctx) {
     data = raw ? parseHKNew(raw, '香港新彩') : null;
   }
 
-  // 检查并拉取五行环境变量 WX_MAP
-  const wxMapUrl = ctx.env['WX_MAP'];
+  // 检查并拉取五行环境变量 五行
+  const wxMapUrl = ctx.env['五行'];
   if (wxMapUrl) {
     const remoteWx = await safeGet(wxMapUrl);
     if (remoteWx) {
