@@ -33,7 +33,8 @@ export default async function (ctx) {
     9: "猴", 10: "鸡", 11: "狗", 12: "猪"
   };
 
-  const FIVE_ELEMENTS_MAP = {
+  // 声明改为 let，以便后续根据环境变量替换
+  let FIVE_ELEMENTS_MAP = {
     metal: ['04','05','12','13','26','27','34','35','42','43'],
     wood:  ['08','09','16','17','24','25','38','39','46','47'],
     water: ['01','14','15','22','23','30','31','44','45'],
@@ -43,10 +44,11 @@ export default async function (ctx) {
 
   function getFiveElement(num) {
     num = String(num).padStart(2, '0');
-    if (FIVE_ELEMENTS_MAP.metal.includes(num)) return "金";
-    if (FIVE_ELEMENTS_MAP.wood.includes(num))  return "木";
-    if (FIVE_ELEMENTS_MAP.water.includes(num)) return "水";
-    if (FIVE_ELEMENTS_MAP.fire.includes(num))  return "火";
+    // 添加可选链 ?. 防止远程数据结构不完整报错
+    if (FIVE_ELEMENTS_MAP.metal?.includes(num)) return "金";
+    if (FIVE_ELEMENTS_MAP.wood?.includes(num))  return "木";
+    if (FIVE_ELEMENTS_MAP.water?.includes(num)) return "水";
+    if (FIVE_ELEMENTS_MAP.fire?.includes(num))  return "火";
     return "土";
   }
 
@@ -168,6 +170,7 @@ export default async function (ctx) {
       lotteryName: name
     };
   }
+
   // ============================
   //       数据获取部分
   // ============================
@@ -198,6 +201,16 @@ export default async function (ctx) {
   else if (lotteryType === 'hkNew') {
     const raw = await fetchHKNew(ts);
     data = raw ? parseHKNew(raw, '香港新彩') : null;
+  }
+
+  // 检查并拉取五行环境变量 WX_MAP
+  const wxMapUrl = ctx.env['WX_MAP'];
+  if (wxMapUrl) {
+    const remoteWx = await safeGet(wxMapUrl);
+    if (remoteWx) {
+      // 兼容可能带有 { data: {...} } 外壳或直接是 { metal: [], ... } 的 JSON 数据结构
+      FIVE_ELEMENTS_MAP = remoteWx.data || remoteWx;
+    }
   }
 
   if (!data) {
