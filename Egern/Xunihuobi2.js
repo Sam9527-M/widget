@@ -1,5 +1,5 @@
-/** 虚拟货币价格（MEXC+binance
-故障转移版）
+/**虚拟货币行情（Mexc+Binance
+版）
 /*使用方法:添加变量环境可修改显示币种
 /*变量环境名称：币种,值：BTC,BNB,ETH,SOL(币种大写字母简写)
 */
@@ -17,19 +17,18 @@ export default async function (ctx) {
     POL: "#8247E5", AVAX: "#E84142", LINK: "#2A5ADA", UNI: "#FF007A",
     SHIB: "#F00500", PEPE: "#4CAF50", FLOKI: "#FFCC00", BONK: "#FF9900",
     WIF: "#0099FF", BOME: "#00AA88", TRX: "#C40000", LTC: "#345D9D",
-    APT: "#6E6E73"   // ✅ 修复：原 #000000 暗色模式不可见
+    APT: "#6E6E73"
   };
 
   const 币种 = ctx.env?.币种 || "BTC,ETH,BNB,SOL";
   
-  // ✅ 增加：主用API(无IP限制且格式与币安一致) 和 备用API(币安)
   const PRIMARY_API = "https://api.mexc.com/api/v3";
   const FALLBACK_API = "https://api.binance.com/api/v3";
 
   const SYMBOL_MAP = {
     BTC: "BTCUSDT", ETH: "ETHUSDT", BNB: "BNBUSDT", SOL: "SOLUSDT",
     XRP: "XRPUSDT", ADA: "ADAUSDT", DOGE: "DOGEUSDT", DOT: "DOTUSDT",
-    POL: "POLUSDT",  // ✅ 修复：MATIC 已改名为 POL
+    POL: "POLUSDT",
     AVAX: "AVAXUSDT", LINK: "LINKUSDT", UNI: "UNIUSDT",
     SHIB: "SHIBUSDT", PEPE: "PEPEUSDT", FLOKI: "FLOKIUSDT", BONK: "BONKUSDT",
     WIF: "WIFUSDT", BOME: "BOMEUSDT", TRX: "TRXUSDT", LTC: "LTCUSDT",
@@ -45,7 +44,7 @@ export default async function (ctx) {
     ADA: "circle.grid.3x3.fill",
     DOGE: "pawprint.fill",
     DOT: "circle.hexagonpath.fill",
-    POL: "triangle.fill",  // ✅ 修复：MATIC → POL
+    POL: "triangle.fill",
     AVAX: "flame.fill",
     LINK: "link.circle.fill",
     UNI: "hare.fill",
@@ -91,28 +90,22 @@ export default async function (ctx) {
     const results = await Promise.all(
       coins.map(async (coin) => {
         const symbol = SYMBOL_MAP[coin];
-        
         try {
-          // 1. 优先尝试主 API 获取数据
           const res1 = await ctx.http.get(`${PRIMARY_API}/ticker/24hr?symbol=${symbol}`);
           const data1 = await res1.json();
           if (data1 && data1.lastPrice) {
-            data1.isMexc = true; // ✅ 标记数据来源，用于后续处理涨跌幅格式
+            data1.isMexc = true;
             return data1;
           }
-        } catch (e) {
-          // 静默失败，准备执行下方的回退逻辑
-        }
+        } catch (e) {}
 
         try {
-          // 2. 故障转移：如果主 API 失败，尝试备用的币安 API
           const res2 = await ctx.http.get(`${FALLBACK_API}/ticker/24hr?symbol=${symbol}`);
           const data2 = await res2.json();
           if (data2 && data2.lastPrice) return data2;
         } catch (e) {
-          return null; // 两者都失败则返回 null
+          return null;
         }
-        
         return null;
       })
     );
@@ -120,15 +113,12 @@ export default async function (ctx) {
     return results
       .map((d, i) => {
         if (!d) return null;
-
-        // ✅ 修复：由于 MEXC 涨跌幅是小数格式(0.05)，币安是百分比格式(5.0)，直接用开收盘价计算最稳妥
         let changePercent = parseFloat(d.priceChangePercent);
         if (d.isMexc && d.openPrice) {
            const last = parseFloat(d.lastPrice);
            const open = parseFloat(d.openPrice);
            changePercent = ((last - open) / open) * 100;
         }
-
         return {
           symbol: coins[i],
           price: parseFloat(d.lastPrice),
@@ -160,7 +150,7 @@ export default async function (ctx) {
       direction: "column",
       alignItems: "center",
       justifyContent: "flex-start",
-      padding: [4, 0, 4, 0],
+      padding: [2, 0, 0, 0],
       children: [
         {
           type: "text",
@@ -169,7 +159,7 @@ export default async function (ctx) {
           textColor: THEME.text
         },
 
-        { type: "spacer", length: 2 },
+        { type: "spacer", length: 0 }, 
 
         {
           type: "stack",
@@ -179,7 +169,7 @@ export default async function (ctx) {
           children: [icon(ICON_MAP[coin.symbol], 28, ICON_COLOR[coin.symbol])]
         },
 
-        { type: "spacer", length: 4 },
+        { type: "spacer", length: 0 },
 
         {
           type: "text",
@@ -226,7 +216,7 @@ export default async function (ctx) {
         direction: "row",
         justifyContent: "space-between",
         gap: 6,
-        padding: [6, 0, 6, 0],
+        padding: [2, 0, 2, 0],
         children: [
           { type: "stack", flex: 1, children: [item(items[i])] },
           items[i + 1] ? { type: "stack", flex: 1, children: [item(items[i + 1])] } : { type: "stack", flex: 1 },
@@ -279,6 +269,8 @@ export default async function (ctx) {
           }
         ]
       },
+
+      { type: "spacer", length: 0 }, // ✅ 已将标题与内容的间距缩小到 0
 
       ...build4Grid(dataSource)
     ]
