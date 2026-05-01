@@ -1,6 +1,6 @@
-/**
+/**虚拟货币行情（币安版）
 /*使用方法:添加变量环境可修改显示币种
-/*变量环境名称：btcType,值：BTC,BNB,ETH,SOL(币种大写字母简写)
+/*变量环境名称：币种,值：BTC,BNB,ETH,SOL(币种大写字母简写)
 */
 
 export default async function (ctx) {
@@ -19,7 +19,7 @@ export default async function (ctx) {
     APT: "#6E6E73"   // ✅ 修复：原 #000000 暗色模式不可见
   };
 
-  const btcType = ctx.env?.btcType || "BTC,ETH,BNB,SOL";
+  const 币种 = ctx.env?.币种 || "BTC,ETH,BNB,SOL";
   const API = "https://api.binance.com/api/v3";
 
   const SYMBOL_MAP = {
@@ -83,7 +83,7 @@ export default async function (ctx) {
 
   const fetchPrices = async () => {
     // ✅ 修复：coins 只解析一次，results.map 直接用 coins[i]
-    const coins = parseSymbols(btcType);
+    const coins = parseSymbols(币种);
 
     const results = await Promise.all(
       coins.map((coin) =>
@@ -128,7 +128,7 @@ export default async function (ctx) {
       direction: "column",
       alignItems: "center",
       justifyContent: "flex-start",
-      padding: [4, 0, 4, 0],
+      padding: [2, 0, 0, 0], // ✅ 极简压缩：缩小上下内部留白
       children: [
         {
           type: "text",
@@ -137,7 +137,7 @@ export default async function (ctx) {
           textColor: THEME.text
         },
 
-        { type: "spacer", length: 2 },
+        { type: "spacer", length: 0 }, // ✅ 极简压缩：图标与上方文字间距改为0
 
         {
           type: "stack",
@@ -147,7 +147,7 @@ export default async function (ctx) {
           children: [icon(ICON_MAP[coin.symbol], 28, ICON_COLOR[coin.symbol])]
         },
 
-        { type: "spacer", length: 4 },
+        { type: "spacer", length: 0 }, // ✅ 极简压缩：图标与下方价格间距改为0
 
         {
           type: "text",
@@ -194,7 +194,7 @@ export default async function (ctx) {
         direction: "row",
         justifyContent: "space-between",
         gap: 6,
-        padding: [6, 0, 6, 0],
+        padding: [2, 0, 2, 0], // ✅ 极简压缩：缩小行与行之间的留白
         children: [
           { type: "stack", flex: 1, children: [item(items[i])] },
           // ✅ 修复：空位改为 { type: "stack", flex: 1 }，spacer 不支持 flex
@@ -248,6 +248,8 @@ export default async function (ctx) {
           }
         ]
       },
+
+      { type: "spacer", length: 0 }, // ✅ 极简压缩：内容与标题紧贴
 
       ...build4Grid(dataSource)
     ]
