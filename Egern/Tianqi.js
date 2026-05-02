@@ -273,8 +273,8 @@ function renderMedium(weather, refreshAfter) {
                   {
                     type: 'image',
                     src: `sf-symbol:${theme.icon}`,
-                    width: 32,
-                    height: 32,
+                    width: 36,
+                    height: 36,
                     color: theme.iconColor,
                   },
                   {
@@ -292,14 +292,14 @@ function renderMedium(weather, refreshAfter) {
                           {
                             type: 'image',
                             src: 'sf-symbol:sunrise.fill',
-                            width: 12,
-                            height: 12,
+                            width: 10,
+                            height: 10,
                             color: '#FF9500',
                           },
                           {
                             type: 'text',
                             text: `日出 ${weather.today.sunrise}`,
-                            font: { size: 12, weight: 'bold' },
+                            font: { size: 10, weight: 'bold' },
                             textColor: '#FF9500', // 同步修改为黄色
                             maxLines: 1,
                             minScale: 0.8,
@@ -315,14 +315,14 @@ function renderMedium(weather, refreshAfter) {
                           {
                             type: 'image',
                             src: 'sf-symbol:sunset.fill',
-                            width: 12,
-                            height: 12,
+                            width: 10,
+                            height: 10,
                             color: '#FF6B6B', // 同步修改为红色
                           },
                           {
                             type: 'text',
                             text: `日落 ${weather.today.sunset}`,
-                            font: { size: 12, weight: 'bold' },
+                            font: { size: 10, weight: 'bold' },
                             textColor: '#FF6B6B', // 同步修改为红色
                             maxLines: 1,
                             minScale: 0.8,
