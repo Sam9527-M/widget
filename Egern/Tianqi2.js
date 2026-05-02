@@ -173,7 +173,7 @@ function renderMedium(w, refreshAfter) {
       {
         type: 'stack', direction: 'row', alignItems: 'center', children: [
           { type: 'stack', direction: 'column', alignItems: 'center', gap: 2, width: 85, children: [
-            { type: 'image', src: `sf-symbol:${theme.icon}`, width: 32, height: 32, color: theme.iconColor },
+            { type: 'image', src: `sf-symbol:${theme.icon}`, width: 36, height: 36, color: theme.iconColor },
             { type: 'stack', direction: 'column', alignItems: 'start', gap: 2, children: [
               createSunTimeNode('sunrise.fill', `日出 ${w.today.sunrise}`, '#FF9500'),
               createSunTimeNode('sunset.fill', `日落 ${w.today.sunset}`, '#FF6B6B') // 修改为红色
