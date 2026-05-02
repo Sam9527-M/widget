@@ -171,9 +171,8 @@ export default async function(ctx) {
 
   const indentedGanzhi = "       " + (obj.term ? `${ganzhiFull} · ${obj.term}` : ganzhiFull);
   
-  // 核心调整：压缩外部间距，调整内部 flex 分配
   return {
-    type: 'widget', padding: [8, 12], url: 'calshow://', backgroundColor: C.bg, // 减小整体顶部底部 padding
+    type: 'widget', padding: [8, 12], url: 'calshow://', backgroundColor: C.bg, 
     children: [
       { 
         type: 'stack', direction: 'row', alignItems: 'center', gap: 4, 
@@ -185,7 +184,7 @@ export default async function(ctx) {
           { type: 'text', text: refreshTime, font: { size: 12, weight: 'regular' }, textColor: C.sub, minimumScaleFactor: 0.8 }
         ]
       },
-      { type: 'spacer', length: 1 }, // 间距 2 -> 1
+      { type: 'spacer', length: 1 }, 
       {
         type: 'stack', direction: 'row', alignItems: 'center',
         children: [
@@ -194,9 +193,8 @@ export default async function(ctx) {
           { type: 'text', text: shichenStr, font: { size: 11, weight: 'bold' }, textColor: C.gold, minimumScaleFactor: 0.8 }
         ]
       },
-      { type: 'spacer', length: 3 }, // 间距 4 -> 3
+      { type: 'spacer', length: 3 }, 
       {
-        // 中间大区：新增 flex: 1，强制这块区域霸占垂直空间
         type: 'stack', direction: 'row', alignItems: 'center', gap: 8, flex: 1, 
         children: [
           {
@@ -211,7 +209,8 @@ export default async function(ctx) {
             ]
           },
           {
-            type: 'stack', direction: 'column', gap: 3, flex: 1, 
+            // 修改点：gap 设为 0，且加入 justifyContent: 'center' 强制聚拢
+            type: 'stack', direction: 'column', gap: 0, flex: 1, justifyContent: 'center',
             children: [
               {
                 type: 'stack', direction: 'row', alignItems: 'start', gap: 4,
@@ -239,10 +238,9 @@ export default async function(ctx) {
           }
         ]
       },
-      { type: 'spacer', length: 4 }, // 间距 6 -> 4
+      { type: 'spacer', length: 4 },
       {
-        // 底部卡片：移除了 flex: 1，缩小 padding
-        type: 'stack', direction: 'column', gap: 2, padding: [4, 8], backgroundColor: C.bubbleBg, borderRadius: 8, justifyContent: 'center',
+        type: 'stack', direction: 'column', gap: 2, padding: [9, 8], backgroundColor: C.bubbleBg, borderRadius: 8, justifyContent: 'center',
         children: [
           {
             type: 'stack', direction: 'row', alignItems: 'start', gap: 4,
