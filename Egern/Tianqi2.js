@@ -17,7 +17,7 @@ const DEFAULT_TIME = 30;
 const Colors = {
   bg: { light: '#FFFFFF', dark: '#1C1C1E' },
   cardBg: { light: '#F2F2F7', dark: '#2C2C2E' },
-  textPrimary: { light: '#000000', dark: '#FFFFFF' }, 
+  textPrimary: { light: '#1C1C1E', dark: '#FFFFFF' }, 
   redWarning: '#FF6B6B',    
   orangeWeather: '#F59E0B', 
   greenTemp: '#30D158'      
@@ -310,8 +310,8 @@ function createUpdateTimeNode(time) {
   return { type: 'stack', direction: 'row', alignItems: 'center', gap: 3, children: [{ type: 'image', src: 'sf-symbol:clock.fill', width: 12, height: 12, color: Colors.textPrimary }, { type: 'text', text: time, font: { size: 12 }, textColor: Colors.textPrimary }] };
 }
 function createSunTimeNode(icon, text, color) {
-  // 核心修改：将 textColor 的固定值替换为了传入的 color 变量，实现文字与图标同色
-  return { type: 'stack', direction: 'row', alignItems: 'center', gap: 4, children: [{ type: 'image', src: `sf-symbol:${icon}`, width: 12, height: 12, color }, { type: 'text', text, font: { size: 12, weight: 'bold' }, textColor: color, minScale: 0.8 }] };
+  // 核心修改：将宽度和高度都调到10，字体size调到10
+  return { type: 'stack', direction: 'row', alignItems: 'center', gap: 4, children: [{ type: 'image', src: `sf-symbol:${icon}`, width: 10, height: 10, color }, { type: 'text', text, font: { size: 10, weight: 'bold' }, textColor: color, minScale: 0.8 }] };
 }
 function createInfoCard(icon, label, value, iColor, vColor = Colors.textPrimary) {
   return { type: 'stack', direction: 'column', flex: 1, padding: [7, 2], backgroundColor: Colors.cardBg, borderRadius: 14, alignItems: 'center', children: [{ type: 'stack', direction: 'row', gap: 4, alignItems: 'center', children: [{ type: 'image', src: `sf-symbol:${icon}`, width: 12, height: 12, color: iColor }, { type: 'text', text: label, font: { size: 11, weight: 'bold' }, textColor: Colors.textPrimary }] }, { type: 'text', text: value, font: { size: 12, weight: 'bold' }, textColor: vColor, maxLines: 1, minScale: 0.6 }] };
