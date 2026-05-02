@@ -273,8 +273,8 @@ function renderMedium(weather, refreshAfter) {
                   {
                     type: 'image',
                     src: `sf-symbol:${theme.icon}`,
-                    width: 36,
-                    height: 36,
+                    width: 35,
+                    height: 35,
                     color: theme.iconColor,
                   },
                   {
