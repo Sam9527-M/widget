@@ -117,8 +117,8 @@ export default async function(ctx) {
   } catch (e) {}
 
   const getVal = (...keys) => { for(let k of keys) if(apiData[k]) return apiData[k]; return ""; };
-  const rawYi = getVal("yi", "Yi", "suit").replace(/\./g, " ").trim();
-  const rawJi = getVal("ji", "Ji", "avoid").replace(/\./g, " ").trim();
+  const rawYi = getVal("yi", "Yi", "suit").replace(/\./g, " \u200B").trim();
+  const rawJi = getVal("ji", "Ji", "avoid").replace(/\./g, " \u200B").trim();
 
   const stems = "甲乙丙丁戊己庚辛壬癸";
   const branches = "子丑寅卯辰巳午未申酉戌亥";
@@ -170,8 +170,10 @@ export default async function(ctx) {
   if (todayHoliday) finalHolidayText = `今日${todayHoliday} | 距 ${finalHolidayText}`;
 
   const indentedGanzhi = "       " + (obj.term ? `${ganzhiFull} · ${obj.term}` : ganzhiFull);
+  
+  // 核心调整：压缩外部间距，调整内部 flex 分配
   return {
-    type: 'widget', padding: [10, 12], url: 'calshow://', backgroundColor: C.bg, 
+    type: 'widget', padding: [8, 12], url: 'calshow://', backgroundColor: C.bg, // 减小整体顶部底部 padding
     children: [
       { 
         type: 'stack', direction: 'row', alignItems: 'center', gap: 4, 
@@ -183,7 +185,7 @@ export default async function(ctx) {
           { type: 'text', text: refreshTime, font: { size: 12, weight: 'regular' }, textColor: C.sub, minimumScaleFactor: 0.8 }
         ]
       },
-      { type: 'spacer', length: 2 }, 
+      { type: 'spacer', length: 1 }, // 间距 2 -> 1
       {
         type: 'stack', direction: 'row', alignItems: 'center',
         children: [
@@ -192,9 +194,10 @@ export default async function(ctx) {
           { type: 'text', text: shichenStr, font: { size: 11, weight: 'bold' }, textColor: C.gold, minimumScaleFactor: 0.8 }
         ]
       },
-      { type: 'spacer', length: 4 }, 
+      { type: 'spacer', length: 3 }, // 间距 4 -> 3
       {
-        type: 'stack', direction: 'row', alignItems: 'center', gap: 8, 
+        // 中间大区：新增 flex: 1，强制这块区域霸占垂直空间
+        type: 'stack', direction: 'row', alignItems: 'center', gap: 8, flex: 1, 
         children: [
           {
             type: 'stack', direction: 'column', alignItems: 'center', justifyContent: 'center',
@@ -214,14 +217,14 @@ export default async function(ctx) {
                 type: 'stack', direction: 'row', alignItems: 'start', gap: 4,
                 children: [
                   { type: 'stack', width: 16, alignItems: 'center', backgroundColor: C.yi, borderRadius: 4, padding: [1, 0], children: [{ type: 'text', text: "宜", font: { size: 9, weight: 'heavy' }, textColor: '#FFFFFF' }] },
-                  { type: 'text', text: rawYi || "诸事皆宜", font: { size: 11, weight: 'medium' }, textColor: C.sub, maxLines: 3, flex: 1, minimumScaleFactor: 0.7 } 
+                  { type: 'text', text: rawYi || "诸事皆宜", font: { size: 11, weight: 'medium' }, textColor: C.sub, flex: 1, maxLines: 10 } 
                 ]
               },
               {
                 type: 'stack', direction: 'row', alignItems: 'start', gap: 4,
                 children: [
                   { type: 'stack', width: 16, alignItems: 'center', backgroundColor: C.ji, borderRadius: 4, padding: [1, 0], children: [{ type: 'text', text: "忌", font: { size: 9, weight: 'heavy' }, textColor: '#FFFFFF' }] },
-                  { type: 'text', text: rawJi || "诸事无忌", font: { size: 11, weight: 'medium' }, textColor: C.sub, maxLines: 3, flex: 1, minimumScaleFactor: 0.7 }
+                  { type: 'text', text: rawJi || "诸事无忌", font: { size: 11, weight: 'medium' }, textColor: C.sub, flex: 1, maxLines: 10 }
                 ]
               },
               {
@@ -236,22 +239,23 @@ export default async function(ctx) {
           }
         ]
       },
-      { type: 'spacer', length: 6 }, 
+      { type: 'spacer', length: 4 }, // 间距 6 -> 4
       {
-        type: 'stack', direction: 'column', gap: 2, padding: [5, 8], backgroundColor: C.bubbleBg, borderRadius: 8, flex: 1, justifyContent: 'center',
+        // 底部卡片：移除了 flex: 1，缩小 padding
+        type: 'stack', direction: 'column', gap: 2, padding: [4, 8], backgroundColor: C.bubbleBg, borderRadius: 8, justifyContent: 'center',
         children: [
           {
             type: 'stack', direction: 'row', alignItems: 'start', gap: 4,
             children: [
               { type: 'image', src: 'sf-symbol:leaf.fill', color: C.term, width: 11, height: 11 },
-              { type: 'text', text: upcomingTerms.join(" · "), font: { size: 11, weight: 'medium' }, textColor: C.sub, maxLines: 3, flex: 1, minimumScaleFactor: 0.7 }
+              { type: 'text', text: upcomingTerms.join(" · "), font: { size: 11, weight: 'medium' }, textColor: C.sub, maxLines: 2, flex: 1, minimumScaleFactor: 0.7 }
             ]
           },
           {
             type: 'stack', direction: 'row', alignItems: 'start', gap: 4,
             children: [
               { type: 'image', src: 'sf-symbol:paperplane.fill', color: C.holiday, width: 11, height: 11 },
-              { type: 'text', text: finalHolidayText, font: { size: 11, weight: 'medium' }, textColor: C.sub, maxLines: 3, flex: 1, minimumScaleFactor: 0.7 }
+              { type: 'text', text: finalHolidayText, font: { size: 11, weight: 'medium' }, textColor: C.sub, maxLines: 2, flex: 1, minimumScaleFactor: 0.7 }
             ]
           }
         ]
