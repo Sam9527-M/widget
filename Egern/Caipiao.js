@@ -60,6 +60,14 @@ export default async function (ctx) {
     return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
   }
 
+  // 格式化日期为 xxxx-xx-xx
+  function formatDateYMD(d) {
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
   const C = {
     bg:    { light: '#FFFFFF', dark: '#1C1C1E' },
     text:  { light: '#111111', dark: '#FFFFFF' },
@@ -99,7 +107,7 @@ export default async function (ctx) {
     const dateObj = new Date(raw.openTime.replace(' ', 'T'));
     return {
       issue: raw.expect,
-      dateStr: dateObj.toLocaleDateString('zh-CN'),
+      dateStr: formatDateYMD(dateObj),
       weekDay: ['周日','周一','周二','周三','周四','周五','周六'][dateObj.getDay()],
       openCodeArr: nums,
       zodiacArr: zodiacs,
@@ -120,7 +128,7 @@ export default async function (ctx) {
     const dateObj = new Date(raw.ballTime.replace(' ', 'T'));
     return {
       issue: raw.periods,
-      dateStr: dateObj.toLocaleDateString('zh-CN'),
+      dateStr: formatDateYMD(dateObj),
       weekDay: ['周日','周一','周二','周三','周四','周五','周六'][dateObj.getDay()],
       openCodeArr: nums,
       zodiacArr: zodiacs,
@@ -154,7 +162,7 @@ export default async function (ctx) {
 
     return {
       issue: meta.qishu,
-      dateStr: openDate.toLocaleDateString('zh-CN'),
+      dateStr: formatDateYMD(openDate),
       weekDay: ['周日','周一','周二','周三','周四','周五','周六'][openDate.getDay()],
       openCodeArr: nums,
       zodiacArr: zodiacs,
