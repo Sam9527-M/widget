@@ -81,9 +81,14 @@ export default async function(ctx) {
 
   const todayMs = new Date(Y, M-1, D).getTime();
   let upcomingTerms = [];
+  let todayTerm = ""; 
+  
   for (let i = 0; i < allTerms.length; i++) {
     const diff = Math.round((allTerms[i].date.getTime() - todayMs) / 86400000);
     if (diff >= 0) {
+      if (diff === 0) {
+        todayTerm = allTerms[i].name; 
+      }
       const startIdx = diff === 0 ? i + 1 : i;
       upcomingTerms = allTerms.slice(startIdx, startIdx + 5).map(t => `${t.name} ${Math.round((t.date.getTime() - todayMs) / 86400000)}天`);
       break;
@@ -129,7 +134,12 @@ export default async function(ctx) {
   
   const rawGzMonth = getVal("gzMonth", "gz_month") || "";
   const rawGzDate = getVal("gzDate", "gz_day") || (stems[dOffset % 10] + branches[dOffset % 12]);
-  const ganzhiFull = rawGzMonth ? `${obj.gz}(${obj.ani})年 ${rawGzMonth}月 ${rawGzDate}日` : `${obj.gz}(${obj.ani})年 ${rawGzDate}日`;
+  
+  // 修改点：将节气移到干支日之后
+  const displayTerm = todayTerm || obj.term;
+  const yearPart = `${obj.gz}(${obj.ani})年`;
+  const dayPart = `${rawGzDate}日${displayTerm ? ` ${displayTerm}` : ""}`;
+  const ganzhiFull = rawGzMonth ? `${yearPart} ${rawGzMonth}月 ${dayPart}` : `${yearPart} ${dayPart}`;
 
   const cIndex = (dOffset + 54) % 60; 
   const dZhi = dOffset % 12;
@@ -169,7 +179,7 @@ export default async function(ctx) {
   let finalHolidayText = upcomingHolidays.join(" · ");
   if (todayHoliday) finalHolidayText = `今日${todayHoliday} | 距 ${finalHolidayText}`;
 
-  const indentedGanzhi = "       " + (obj.term ? `${ganzhiFull} · ${obj.term}` : ganzhiFull);
+  const indentedGanzhi = "       " + ganzhiFull;
   
   return {
     type: 'widget', padding: [8, 12], url: 'calshow://', backgroundColor: C.bg, 
@@ -209,7 +219,6 @@ export default async function(ctx) {
             ]
           },
           {
-            // 修改点：gap 设为 0，且加入 justifyContent: 'center' 强制聚拢
             type: 'stack', direction: 'column', gap: 0, flex: 1, justifyContent: 'center',
             children: [
               {
