@@ -1,10 +1,10 @@
 /**
  * ⭐ 星座修改方法（Egern → Environment）
  * ---------------------------------------
- * 名称（Name）：zodiac
+ * 名称（Name）：星座
  * 值（Value）：任意星座，如：
- *   白羊座 / 金牛座 / 双子座 / 巨蟹座 / 狮子座 / 处女座
- *   天秤座 / 天蝎座 / 射手座 / 摩羯座 / 水瓶座 / 双鱼座
+ * 白羊座 / 金牛座 / 双子座 / 巨蟹座 / 狮子座 / 处女座
+ * 天秤座 / 天蝎座 / 射手座 / 摩羯座 / 水瓶座 / 双鱼座
  *
  * 若未设置，则自动根据当前日期推算星座
  */
@@ -41,7 +41,8 @@ export default async function(ctx) {
 
   const now = new Date(Date.now() + (new Date().getTimezoneOffset() + 480) * 60000);
   const [Y, M, D] = [now.getFullYear(), now.getMonth() + 1, now.getDate()];
-  const currentZodiacDisplay = ctx.env?.zodiac || getZodiacByDate(M, D);
+  // 修改了这里：将 zodiac 改为了 ['星座'] 以安全读取中文变量名
+  const currentZodiacDisplay = ctx.env?.['星座'] || getZodiacByDate(M, D);
 
   const C = {
     bg:      { light: '#FFFFFF', dark: '#121212' },
@@ -60,7 +61,6 @@ export default async function(ctx) {
   const WEEK = "日一二三四五六"[now.getDay()];
   const P = n => n < 10 ? `0${n}` : n;
 
-  // ✅ 修复：weekNumber 改用 ISO 8601 标准算法
   function getISOWeekNumber(date) {
     const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
     const dayNum = d.getUTCDay() || 7;
@@ -144,7 +144,7 @@ export default async function(ctx) {
       if (offset < 0) { offset += temp; i--; }
 
       const lD = offset + 1;
-      const tId = m * 2 - (d < this.getTerm(y, m * 2 - 1) ? 2 : 1);
+      const tId = m * 2 - (d <= this.getTerm(y, m * 2 - 1) ? 2 : 1);
 
       const gz =
         "甲乙丙丁戊己庚辛壬癸"[(lYear - 4) % 10] +
@@ -183,6 +183,7 @@ export default async function(ctx) {
     const diff = Math.round((allTerms[i].date.getTime() - todayMs) / 86400000);
     if (diff >= 0) {
       currentTerm = diff === 0 ? allTerms[i].name : allTerms[i - 1].name;
+      // 倒计时不再显示当天，如果当天是节气则直接从下一个节气开始显示
       const startIdx = diff === 0 ? i + 1 : i;
       upcomingTerms = allTerms
         .slice(startIdx, startIdx + 4)
@@ -298,10 +299,11 @@ export default async function(ctx) {
   let finalHolidayText = upcomingHolidays.join(", ");
   if (todayHoliday) finalHolidayText = `今日${todayHoliday} · 距 ${finalHolidayText}`;
 
+  // 移除了 maxLines 限制，并将 alignItems 设置为 start 以适应多行文字排版
   const createRow = (icon, color, label, textStr) => ({
     type: "stack",
     direction: "row",
-    alignItems: "center",
+    alignItems: "start",
     gap: 4,
     children: [
       {
@@ -319,7 +321,6 @@ export default async function(ctx) {
         text: textStr,
         font: { size: 12, weight: "medium" },
         textColor: C.sub,
-        maxLines: 1,
         flex: 1
       }
     ]
@@ -348,7 +349,6 @@ export default async function(ctx) {
             textColor: C.main
           },
           { type: "spacer" },
-          // ✅ 修复：刷新时间改用 C.main，深色模式下可见
           {
             type: "stack",
             direction: "row",
@@ -357,9 +357,10 @@ export default async function(ctx) {
             children: [
               { type: "image", src: "sf-symbol:clock.arrow.circlepath", color: C.main, width: 11, height: 11 },
               {
+                // 时间显示已修改为只显示时分
                 type: "text",
-                text: `${P(now.getHours())}:${P(now.getMinutes())}:${P(now.getSeconds())}`,
-                font: { size: 12, weight: "medium" },
+                text: `${P(now.getHours())}:${P(now.getMinutes())}`,
+                font: { size: 11, weight: "medium" },
                 textColor: C.main
               }
             ]
