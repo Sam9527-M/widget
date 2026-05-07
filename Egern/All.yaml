@@ -1,4 +1,4 @@
-name: Sam9527 小组件合集
+Name: Sam9527 小组件合集
 description: 整合油价、天气、汇率（主/备）脚本。支持通过变量环境直接在界面修改参数。
 
 env_schema:
@@ -19,18 +19,22 @@ scriptings:
   - generic:
       name: 今日油价
       script_url: https://raw.githubusercontent.com/Sam9527-M/widget/refs/heads/main/Egern/Youjia2.js
+      argument: "{{OIL_REGION}}"
       timeout: 10
   - generic:
       name: 每日天气
       script_url: https://raw.githubusercontent.com/Sam9527-M/widget/refs/heads/main/Egern/Tianqi.js
+      argument: "{{WEATHER_CITY}}"
       timeout: 10
   - generic:
       name: 实时汇率
       script_url: https://raw.githubusercontent.com/Sam9527-M/widget/refs/heads/main/Egern/Huilv.js
+      argument: "{{EXCHANGE_PAIR}}"
       timeout: 10
   - generic:
       name: 实时汇率备用
       script_url: https://raw.githubusercontent.com/Sam9527-M/widget/refs/heads/main/Egern/HL2.js
+      argument: "{{EXCHANGE_PAIR}}"
       timeout: 10
 
 widgets:
