@@ -11,6 +11,8 @@ export default async function (ctx) {
   const API_BINANCE = "https://fapi.binance.com/fapi/v1/ticker/24hr";
   const API_FX = "https://open.er-api.com/v6/latest/USD";
   const YAHOO_API = "https://query1.finance.yahoo.com/v8/finance/chart/";
+  // 新增 Yahoo quote API 作为原油备用来源
+  const YAHOO_QUOTE_API = "https://query1.finance.yahoo.com/v7/finance/quote?symbols=";
 
   const ICON_MAP = {
     GOLD: "circle.fill",
@@ -69,6 +71,17 @@ export default async function (ctx) {
     return d?.chart?.result?.[0]?.meta?.regularMarketPrice || null;
   };
 
+  // 新增：使用 Yahoo quote API 获取原油价格（CL=F, BZ=F）
+  const fetchYahooQuoteOil = async (symbol) => {
+    try {
+      const d = await fetchJSON(`${YAHOO_QUOTE_API}${symbol}`);
+      const price = d?.quoteResponse?.result?.[0]?.regularMarketPrice;
+      return typeof price === "number" ? price : null;
+    } catch {
+      return null;
+    }
+  };
+
   const getOilFallbackPrice = (key) => oilFallback?.rates?.[key] || null;
 
   const usd = {
@@ -83,11 +96,15 @@ export default async function (ctx) {
     BRENT:
       await fetchSQ("XBR/USD") ||
       getOilFallbackPrice("BRENT") ||
+      // 先尝试 Yahoo quote API，再回退到原有的 Yahoo chart API
+      await fetchYahooQuoteOil("BZ=F") ||
       await fetchYahooOil("BZ=F"),
 
     WTI:
       await fetchSQ("XTI/USD") ||
       getOilFallbackPrice("WTI") ||
+      // 先尝试 Yahoo quote API，再回退到原有的 Yahoo chart API
+      await fetchYahooQuoteOil("CL=F") ||
       await fetchYahooOil("CL=F")
   };
 
@@ -198,7 +215,7 @@ export default async function (ctx) {
           {
             type: "text",
             text: dateStr,
-            font: { size: 12 },
+            font: { size: 11 },
             textColor: THEME.text
           }
         ]
