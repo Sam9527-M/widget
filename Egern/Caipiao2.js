@@ -307,7 +307,7 @@ export default async function (ctx) {
           {
             type: 'text',
             text: `${zodiac}/${five}`,
-            font: { size: 15, weight: isSpecial ? 'bold' : 'medium' },
+            font: { size: 14, weight: isSpecial ? 'bold' : 'medium' },
             textColor: waveColor,
             textAlign: 'center'
           }
